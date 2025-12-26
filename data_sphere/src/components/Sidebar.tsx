@@ -26,9 +26,13 @@ export const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 py-4 flex flex-col h-[calc(100vh-64px)] hidden lg:flex">
       <div className="px-4 mb-6">
-        <button className="flex items-center gap-3 bg-white border border-gray-300 rounded-2xl px-4 py-4 shadow-sm hover:shadow-md hover:bg-gray-50 transition-all">
-          <Plus size={24} className="text-blue-600" />
-          <span className="text-sm font-medium text-gray-600">New</span>
+        <button className="group relative w-[120px] h-[60px] cursor-pointer flex items-center border-2 border-black shadow-[4px_4px_#323232] bg-white rounded-[10px] overflow-hidden transition-all duration-300 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none">
+          <span className="translate-x-[24px] text-black font-semibold transition-all duration-300 group-hover:text-transparent">
+            New
+          </span>
+          <span className="absolute translate-x-[77px] h-full w-[39px] bg-white flex items-center justify-center transition-all duration-300 group-hover:w-full group-hover:translate-x-0">
+            <Plus size={28} className="text-blue-600" />
+          </span>
         </button>
       </div>
 
@@ -38,13 +42,13 @@ export const Sidebar: React.FC = () => {
             <li key={item.label}>
               <a 
                 href="#" 
-                className={`flex items-center gap-3 px-6 py-1.5 rounded-r-full text-sm font-medium transition-colors ${
+                className={`flex items-center-fix gap-3 px-6 py-2 rounded-r-full text-base font-medium transition-colors ${
                   item.active 
-                    ? 'bg-blue-50 text-blue-700' 
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-blue-50 text-blue-800' 
+                    : 'text-black hover:bg-gray-300'
                 }`}
               >
-                <item.icon size={20} className={item.active ? 'text-blue-700' : 'text-gray-500'} />
+                <item.icon size={18} className={item.active ? 'text-blue-800 stroke-[2.5px]' : 'text-black stroke-[2.5px]'} />
                 {item.label}
               </a>
             </li>
@@ -56,8 +60,8 @@ export const Sidebar: React.FC = () => {
         <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
           <div className="bg-blue-600 h-1 rounded-full" style={{ width: '30%' }}></div>
         </div>
-        <p className="text-xs text-gray-600 mb-1">4.2 GB of 15 GB used</p>
-        <button className="text-xs text-blue-600 border border-gray-300 rounded px-3 py-1 hover:bg-blue-50">
+        <p className="text-sm text-black mb-1 font-medium">4.2 GB of 15 GB used</p>
+        <button className="text-sm font-medium text-blue-700 border border-gray-300 rounded px-4 py-1.5 hover:bg-blue-50">
           Get more storage
         </button>
       </div>

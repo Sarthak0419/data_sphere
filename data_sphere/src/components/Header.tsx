@@ -12,40 +12,40 @@ export const Header: React.FC = () => {
           <img 
             src="https://upload.wikimedia.org/wikipedia/commons/d/da/Google_Drive_logo_%282020%29.svg" 
             alt="Drive Logo" 
-            className="w-10 h-10"
+            className="w-11 h-11"
           />
-          <span className="text-xl text-gray-600 font-normal">Drive</span>
+          <span className="text-2xl text-gray-700 font-medium">Drive</span>
         </div>
       </div>
 
       <div className="flex-1 max-w-3xl px-4">
         <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={20} className="text-gray-500 group-focus-within:text-blue-600" />
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search size={24} className="text-gray-600 group-focus-within:text-blue-700 stroke-[2.5px]" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-3 bg-gray-100 border-none rounded-full leading-5 text-gray-900 placeholder-gray-600 focus:outline-none focus:bg-white focus:ring-1 focus:ring-gray-200 focus:shadow-md transition-shadow sm:text-sm"
-            placeholder="Search in Drive"
+            className="block w-full pl-12 pr-4 py-3.5 bg-gray-100 border-none rounded-full leading-5 text-gray-900 placeholder-gray-700 font-normal focus:outline-none focus:bg-white focus:ring-1 focus:ring-gray-200 focus:shadow-md transition-shadow sm:text-base"
+            placeholder="Search here..."
           />
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer">
-             <Settings size={20} className="text-gray-600" />
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer">
+             <Settings size={20} className="text-black stroke-[2.5px]" />
           </div>
         </div>
       </div>
 
       <div className="flex items-center gap-2 w-60 justify-end">
-        <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-600">
-          <HelpCircle size={24} />
+        <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-700">
+          <HelpCircle size={24} className="stroke-[2.5px]" />
         </div>
-        <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-600">
-          <Settings size={24} />
+        <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-700">
+          <Settings size={24} className="stroke-[2.5px]" />
         </div>
-        <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-600">
-          <Grip size={24} />
+        <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-700">
+          <Grip size={24} className="stroke-[2.5px]" />
         </div>
         <div className="ml-2 cursor-pointer">
-           <UserCircle size={32} className="text-blue-600" />
+           <UserCircle size={28} className="text-blue-700" />
         </div>
       </div>
     </header>
