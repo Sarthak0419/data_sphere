@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { icon: HardDrive, label: 'My Drive', active: true },
+  { icon: HardDrive, label: 'My Storage', active: true },
   { icon: Monitor, label: 'Computers' },
   { icon: Users, label: 'Shared with me' },
   { icon: Clock, label: 'Recent' },
