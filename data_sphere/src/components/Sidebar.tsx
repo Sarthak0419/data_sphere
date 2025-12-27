@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   Plus, 
   HardDrive, 
@@ -12,17 +13,19 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { icon: HardDrive, label: 'My Storage', active: true },
-  { icon: Monitor, label: 'Computers' },
-  { icon: Users, label: 'Shared with me' },
-  { icon: Clock, label: 'Recent' },
-  { icon: Star, label: 'Starred' },
-  { icon: AlertOctagon, label: 'Spam' },
-  { icon: Trash2, label: 'Trash' },
-  { icon: Cloud, label: 'Storage' },
+  { icon: HardDrive, label: 'My Storage', path: '/drive/my-drive' },
+  { icon: Monitor, label: 'Computers', path: '/drive/computers' },
+  { icon: Users, label: 'Shared with me', path: '/drive/shared' },
+  { icon: Clock, label: 'Recent', path: '/drive/recent' },
+  { icon: Star, label: 'Starred', path: '/drive/starred' },
+  { icon: AlertOctagon, label: 'Spam', path: '/drive/spam' },
+  { icon: Trash2, label: 'Trash', path: '/drive/trash' },
+  { icon: Cloud, label: 'Storage', path: '/drive/storage' },
 ];
 
 export const Sidebar: React.FC = () => {
+  const location = useLocation();
+  
   return (
     <aside className="w-64 py-4 flex flex-col h-[calc(100vh-64px)] hidden lg:flex">
       <div className="px-4 mb-6">
@@ -38,21 +41,24 @@ export const Sidebar: React.FC = () => {
 
       <nav className="flex-1 overflow-y-auto">
         <ul className="space-y-1">
-          {navItems.map((item) => (
-            <li key={item.label}>
-              <a 
-                href="#" 
-                className={`flex items-center-fix gap-3 px-6 py-2 rounded-r-full text-base font-medium transition-colors ${
-                  item.active 
-                    ? 'bg-blue-50 text-blue-800' 
-                    : 'text-black hover:bg-gray-300'
-                }`}
-              >
-                <item.icon size={18} className={item.active ? 'text-blue-800 stroke-[2.5px]' : 'text-black stroke-[2.5px]'} />
-                {item.label}
-              </a>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <li key={item.label}>
+                <Link 
+                  to={item.path} 
+                  className={`flex items-center-fix gap-3 px-6 py-2 rounded-r-full text-base font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-blue-50 text-blue-800' 
+                      : 'text-black hover:bg-gray-300'
+                  }`}
+                >
+                  <item.icon size={18} className={isActive ? 'text-blue-800 stroke-[2.5px]' : 'text-black stroke-[2.5px]'} />
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

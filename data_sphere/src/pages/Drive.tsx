@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown } from 'lucide-react';
+import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star } from 'lucide-react';
 
 interface FileItem {
   name: string;
   type: string;
   date: string;
   size: string;
+  starred?: boolean;
 }
 
 const getFileIcon = (filename: string) => {
@@ -237,12 +238,25 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
   );
 };
 
-export const Drive: React.FC = () => {
+interface DriveProps {
+  starredFiles: Set<string>;
+  onToggleStar: (fileName: string) => void;
+}
+
+export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
+  const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
+
+  const toggleStar = (fileName: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    onToggleStar(fileName);
+  };
 
   useEffect(() => {
     // Load files from temp_dataset
@@ -411,14 +425,28 @@ export const Drive: React.FC = () => {
                     <td className="py-4 px-6 text-base font-normal text-black">{file.date}</td>
                     <td className="py-4 px-6 text-base font-normal text-black">{file.size}</td>
                     <td className="py-4 px-6 text-right">
-                      <button 
-                        className="p-2 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <MoreVertical size={20} className="text-black" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        <button 
+                          className={`p-2 hover:bg-gray-200 rounded-full transition-all ${
+                            starredFiles.has(file.name) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          }`}
+                          onClick={(e) => toggleStar(file.name, e)}
+                          title={starredFiles.has(file.name) ? 'Remove from starred' : 'Add to starred'}
+                        >
+                          <Star 
+                            size={20} 
+                            className={starredFiles.has(file.name) ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
+                          />
+                        </button>
+                        <button 
+                          className="p-2 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <MoreVertical size={20} className="text-black" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -427,12 +455,24 @@ export const Drive: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filteredAndSortedFiles.map((file) => (
-              <div 
-                key={file.name} 
-                className="group bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-gray-300 cursor-pointer transition-all p-4 relative"
-                onClick={() => setSelectedFile(file)}
-              >
+            {filteredAndSortedFiles.map((file, index) => {
+              // Determine grid columns based on screen size
+              const getColumnsCount = () => {
+                if (window.innerWidth >= 1280) return 6; // xl
+                if (window.innerWidth >= 1024) return 5; // lg
+                if (window.innerWidth >= 768) return 4; // md
+                if (window.innerWidth >= 640) return 3; // sm
+                return 2; // default
+              };
+              const columnsCount = getColumnsCount();
+              const isLeftSide = index % columnsCount < columnsCount / 2;
+              
+              return (
+                <div 
+                  key={file.name} 
+                  className="group bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-gray-300 cursor-pointer transition-all p-4 relative"
+                  onClick={() => setSelectedFile(file)}
+                >
                 <div className="flex flex-col items-center text-center">
                   <div className="mb-3 p-4 bg-gray-50 rounded-lg group-hover:bg-gray-100 transition-colors">
                     {getFileIcon(file.name)}
@@ -443,17 +483,68 @@ export const Drive: React.FC = () => {
                     </p>
                     <p className="text-xs text-black">{file.size}</p>
                   </div>
-                  <button 
-                    className="absolute top-2 right-2 p-1.5 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                  >
-                    <MoreVertical size={16} className="text-black" />
-                  </button>
+                  <div className="absolute top-2 right-2">
+                    {starredFiles.has(file.name) && (
+                      <div className="absolute -top-1 -left-1">
+                        <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                      </div>
+                    )}
+                    <button 
+                      className="p-1.5 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity relative"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuFile(openMenuFile === file.name ? null : file.name);
+                      }}
+                    >
+                      <MoreVertical size={16} className="text-black" />
+                    </button>
+                    {openMenuFile === file.name && (
+                      <div 
+                        className={`absolute ${isLeftSide ? 'left-0' : 'right-0'} mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar(file.name);
+                            setOpenMenuFile(null);
+                          }}
+                        >
+                          <Star 
+                            size={16} 
+                            className={starredFiles.has(file.name) ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
+                          />
+                          <span className="text-black">
+                            {starredFiles.has(file.name) ? 'Remove from starred' : 'Add to starred'}
+                          </span>
+                        </button>
+                        <button
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuFile(null);
+                          }}
+                        >
+                          <Download size={16} className="text-black" />
+                          <span className="text-black">Download</span>
+                        </button>
+                        <button
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuFile(null);
+                          }}
+                        >
+                          <Share2 size={16} className="text-black" />
+                          <span className="text-black">Share</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            ))}
+            );})}
           </div>
         )}
       </div>
