@@ -302,29 +302,42 @@ export const Drive: React.FC = () => {
     <div className="h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-normal text-black">My Storage</h1>
-        <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'list' 
-                ? 'bg-white text-black shadow-sm' 
-                : 'text-gray-600 hover:text-black'
-            }`}
-            title="List view"
+        
+        {/* Toggle Switch */}
+        <div className="relative">
+          <input
+            type="checkbox"
+            id="viewToggle"
+            className="hidden"
+            checked={viewMode === 'grid'}
+            onChange={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+          />
+          <label
+            htmlFor="viewToggle"
+            className="h-[60px] w-[120px] bg-white rounded-[30px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
+            style={{
+              boxShadow: 'inset 0 0 5px 4px rgba(255, 255, 255, 1), inset 0 0 20px 1px rgba(0, 0, 0, 0.488), 10px 20px 30px rgba(0, 0, 0, 0.096), inset 0 0 0 3px rgba(0, 0, 0, 0.3)'
+            }}
           >
-            <List size={20} />
-          </button>
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded transition-colors ${
-              viewMode === 'grid' 
-                ? 'bg-white text-black shadow-sm' 
-                : 'text-gray-600 hover:text-black'
-            }`}
-            title="Grid view"
-          >
-            <LayoutGrid size={20} />
-          </button>
+            <div
+              className={`absolute h-[40px] w-[40px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
+                viewMode === 'grid'
+                  ? 'left-[70px] bg-gradient-to-br from-black to-[#414141]'
+                  : 'left-[10px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
+              } flex items-center justify-center`}
+              style={{
+                backgroundImage: viewMode === 'grid' 
+                  ? 'linear-gradient(315deg, #000000 0%, #414141 70%)'
+                  : 'linear-gradient(315deg, #efeeeeff 100%)'
+              }}
+            >
+              {viewMode === 'list' ? (
+                <List size={20} className="text-black" />
+              ) : (
+                <LayoutGrid size={20} className="text-white" />
+              )}
+            </div>
+          </label>
         </div>
       </div>
 
