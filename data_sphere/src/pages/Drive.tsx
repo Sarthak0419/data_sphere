@@ -369,16 +369,16 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
               />
               <label
                 htmlFor="viewToggle"
-                className="h-[60px] w-[120px] bg-white rounded-[30px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
+                className="h-[44px] w-[88px] bg-white rounded-[22px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
                 style={{
                   boxShadow: 'inset 0 0 5px 4px rgba(255, 255, 255, 1), inset 0 0 20px 1px rgba(0, 0, 0, 0.488), 10px 20px 30px rgba(0, 0, 0, 0.096), inset 0 0 0 3px rgba(0, 0, 0, 0.3)'
                 }}
               >
                 <div
-                  className={`absolute h-[40px] w-[40px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
+                  className={`absolute h-[30px] w-[30px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
                     viewMode === 'grid'
-                      ? 'left-[70px] bg-gradient-to-br from-black to-[#414141]'
-                      : 'left-[10px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
+                      ? 'left-[51px] bg-gradient-to-br from-black to-[#414141]'
+                      : 'left-[7px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
                   } flex items-center justify-center`}
                   style={{
                     backgroundImage: viewMode === 'grid' 
@@ -387,9 +387,9 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
                   }}
                 >
                   {viewMode === 'list' ? (
-                    <List size={20} className="text-black" />
+                    <List size={16} className="text-black" />
                   ) : (
-                    <LayoutGrid size={20} className="text-white" />
+                    <LayoutGrid size={16} className="text-white" />
                   )}
                 </div>
               </label>
@@ -413,8 +413,8 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
                   <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-full p-2 mb-1.5">
                     <Cloud size={20} className="text-white" />
                   </div>
-                  <h3 className="text-xs font-bold mb-1">Secure Cloud Storage</h3>
-                  <p className="text-gray-300 text-center text-[10px] leading-tight">
+                  <h3 className="text-xs font-bold mb-1 text-black">Secure Cloud Storage</h3>
+                  <p className="text-black text-center text-[10px] leading-tight">
                     Store all your files securely with automatic backups.
                   </p>
                 </div>
@@ -424,8 +424,8 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
                   <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-full p-2 mb-1.5">
                     <Lock size={20} className="text-white" />
                   </div>
-                  <h3 className="text-xs font-bold mb-1">End-to-End Encryption</h3>
-                  <p className="text-gray-300 text-center text-[10px] leading-tight">
+                  <h3 className="text-xs font-bold mb-1 text-black">End-to-End Encryption</h3>
+                  <p className="text-black text-center text-[10px] leading-tight">
                     Your data is protected with military-grade encryption.
                   </p>
                 </div>
@@ -435,8 +435,8 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
                   <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-full p-2 mb-1.5">
                     <Zap size={20} className="text-white" />
                   </div>
-                  <h3 className="text-xs font-bold mb-1">Lightning Fast Access</h3>
-                  <p className="text-gray-300 text-center text-[10px] leading-tight">
+                  <h3 className="text-xs font-bold mb-1 text-black">Lightning Fast Access</h3>
+                  <p className="text-black text-center text-[10px] leading-tight">
                     Access your files instantly from any device.
                   </p>
                 </div>
