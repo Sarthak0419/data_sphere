@@ -359,7 +359,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
             </div>
 
             {/* Toggle Switch */}
-            <div className="relative ml-4">
+            <div className="relative ml-8">
               <input
                 type="checkbox"
                 id="viewToggle"
@@ -398,7 +398,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
         </div>
 
         {/* Right Side - Cards */}
-        <div className="flex-shrink-0 -mt-2 mr-8">
+        <div className="flex-shrink-0 -mt-2 mr-16">
           <div className="relative h-[200px] overflow-visible">
             <CardSwap
               width={200}
