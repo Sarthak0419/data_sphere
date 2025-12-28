@@ -9,7 +9,7 @@ export const MainLayout: React.FC = () => {
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 bg-white rounded-tl-2xl border border-gray-200 m-2 overflow-y-auto p-4">
+        <main className="flex-1 bg-white rounded-tl-2xl border border-gray-200 m-2 ml-[264px] overflow-y-auto p-4">
           <Outlet />
         </main>
         {/* Right sidebar could go here */}

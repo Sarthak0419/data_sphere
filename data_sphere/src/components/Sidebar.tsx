@@ -27,7 +27,7 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
   
   return (
-    <aside className="w-64 py-4 flex flex-col h-[calc(100vh-64px)] hidden lg:flex">
+    <aside className="w-64 py-4 flex flex-col h-[calc(100vh-64px)] hidden lg:flex border-r border-gray-200 bg-white fixed left-0 top-[64px]">
       <div className="px-4 mb-6">
         <button className="group relative w-[120px] h-[60px] cursor-pointer flex items-center border-2 border-black shadow-[4px_4px_#323232] bg-white rounded-[10px] overflow-hidden transition-all duration-300 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none">
           <span className="translate-x-[24px] text-black font-semibold transition-all duration-300 group-hover:text-transparent">
@@ -63,11 +63,11 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       <div className="px-6 mt-4">
-        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+        <div className="w-full bg-gray-200 rounded-full h-1 mb-6">
           <div className="bg-blue-600 h-1 rounded-full" style={{ width: '30%' }}></div>
         </div>
-        <p className="text-sm text-black mb-1 font-medium">4.2 GB of 15 GB used</p>
-        <button className="text-sm font-medium text-blue-700 border border-gray-300 rounded px-4 py-1.5 hover:bg-blue-50">
+        <p className="text-sm text-black mb-7 font-medium">4.2 GB of 15 GB used</p>
+        <button className="text-sm font-medium text-blue-700 border border-gray-300 rounded px-4 py-1.5 hover:bg-blue-50 mb-6">
           Get more storage
         </button>
       </div>
