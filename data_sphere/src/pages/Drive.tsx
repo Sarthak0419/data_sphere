@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star } from 'lucide-react';
+import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Cloud, Lock, Zap } from 'lucide-react';
+import CardSwap, { Card } from '../components/CardSwap';
 
 interface FileItem {
   name: string;
@@ -314,81 +315,134 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
 
   return (
     <div className="h-full">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-normal text-black">My Storage</h1>
-        
-        {/* Toggle Switch */}
-        <div className="relative">
-          <input
-            type="checkbox"
-            id="viewToggle"
-            className="hidden"
-            checked={viewMode === 'grid'}
-            onChange={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
-          />
-          <label
-            htmlFor="viewToggle"
-            className="h-[60px] w-[120px] bg-white rounded-[30px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
-            style={{
-              boxShadow: 'inset 0 0 5px 4px rgba(255, 255, 255, 1), inset 0 0 20px 1px rgba(0, 0, 0, 0.488), 10px 20px 30px rgba(0, 0, 0, 0.096), inset 0 0 0 3px rgba(0, 0, 0, 0.3)'
-            }}
-          >
-            <div
-              className={`absolute h-[40px] w-[40px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
-                viewMode === 'grid'
-                  ? 'left-[70px] bg-gradient-to-br from-black to-[#414141]'
-                  : 'left-[10px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
-              } flex items-center justify-center`}
-              style={{
-                backgroundImage: viewMode === 'grid' 
-                  ? 'linear-gradient(315deg, #000000 0%, #414141 70%)'
-                  : 'linear-gradient(315deg, #efeeeeff 100%)'
-              }}
-            >
-              {viewMode === 'list' ? (
-                <List size={20} className="text-black" />
-              ) : (
-                <LayoutGrid size={20} className="text-white" />
-              )}
+      {/* Top Section with Title and Cards */}
+      <div className="flex justify-between items-start mb-8">
+        {/* Left Side - Title and Filters */}
+        <div className="flex-shrink-0">
+          <h1 className="text-3xl font-normal text-black mb-2">My Storage</h1>
+          <p className="text-gray-600 text-sm mb-4">Manage and organize your files</p>
+          
+          {/* Filter and Sort Controls */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Filter size={18} className="text-black" />
+              <select
+                value={fileTypeFilter}
+                onChange={(e) => setFileTypeFilter(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="all">All Types</option>
+                {fileTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.toUpperCase()} Files
+                  </option>
+                ))}
+              </select>
             </div>
-          </label>
-        </div>
-      </div>
+            
+            <div className="flex items-center gap-2">
+              <ArrowUpDown size={18} className="text-black" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="name">Name</option>
+                <option value="size-asc">Size (Smallest First)</option>
+                <option value="size-desc">Size (Largest First)</option>
+                <option value="date">Date Modified</option>
+              </select>
+            </div>
+            
+            <div className="text-sm text-black">
+              {filteredAndSortedFiles.length} {filteredAndSortedFiles.length === 1 ? 'file' : 'files'}
+            </div>
 
-      {/* Filter and Sort Controls */}
-      <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <Filter size={18} className="text-black" />
-          <select
-            value={fileTypeFilter}
-            onChange={(e) => setFileTypeFilter(e.target.value)}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          >
-            <option value="all">All Types</option>
-            {fileTypes.map(type => (
-              <option key={type} value={type}>
-                {type.toUpperCase()} Files
-              </option>
-            ))}
-          </select>
+            {/* Toggle Switch */}
+            <div className="relative ml-4">
+              <input
+                type="checkbox"
+                id="viewToggle"
+                className="hidden"
+                checked={viewMode === 'grid'}
+                onChange={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+              />
+              <label
+                htmlFor="viewToggle"
+                className="h-[60px] w-[120px] bg-white rounded-[30px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
+                style={{
+                  boxShadow: 'inset 0 0 5px 4px rgba(255, 255, 255, 1), inset 0 0 20px 1px rgba(0, 0, 0, 0.488), 10px 20px 30px rgba(0, 0, 0, 0.096), inset 0 0 0 3px rgba(0, 0, 0, 0.3)'
+                }}
+              >
+                <div
+                  className={`absolute h-[40px] w-[40px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
+                    viewMode === 'grid'
+                      ? 'left-[70px] bg-gradient-to-br from-black to-[#414141]'
+                      : 'left-[10px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
+                  } flex items-center justify-center`}
+                  style={{
+                    backgroundImage: viewMode === 'grid' 
+                      ? 'linear-gradient(315deg, #000000 0%, #414141 70%)'
+                      : 'linear-gradient(315deg, #efeeeeff 100%)'
+                  }}
+                >
+                  {viewMode === 'list' ? (
+                    <List size={20} className="text-black" />
+                  ) : (
+                    <LayoutGrid size={20} className="text-white" />
+                  )}
+                </div>
+              </label>
+            </div>
+          </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <ArrowUpDown size={18} className="text-black" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-black hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-          >
-            <option value="name">Name</option>
-            <option value="size-asc">Size (Smallest First)</option>
-            <option value="size-desc">Size (Largest First)</option>
-            <option value="date">Date Modified</option>
-          </select>
-        </div>
-        
-        <div className="ml-auto text-sm text-black">
-          {filteredAndSortedFiles.length} {filteredAndSortedFiles.length === 1 ? 'file' : 'files'}
+
+        {/* Right Side - Cards */}
+        <div className="flex-shrink-0 -mt-2 mr-8">
+          <div className="relative h-[200px] overflow-visible">
+            <CardSwap
+              width={200}
+              height={130}
+              cardDistance={25}
+              verticalDistance={30}
+              delay={5000}
+              pauseOnHover={true}
+            >
+              <Card>
+                <div className="w-full h-full p-3 flex flex-col items-center justify-center text-white">
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-700 rounded-full p-2 mb-1.5">
+                    <Cloud size={20} className="text-white" />
+                  </div>
+                  <h3 className="text-xs font-bold mb-1">Secure Cloud Storage</h3>
+                  <p className="text-gray-300 text-center text-[10px] leading-tight">
+                    Store all your files securely with automatic backups.
+                  </p>
+                </div>
+              </Card>
+              <Card>
+                <div className="w-full h-full p-3 flex flex-col items-center justify-center text-white">
+                  <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-full p-2 mb-1.5">
+                    <Lock size={20} className="text-white" />
+                  </div>
+                  <h3 className="text-xs font-bold mb-1">End-to-End Encryption</h3>
+                  <p className="text-gray-300 text-center text-[10px] leading-tight">
+                    Your data is protected with military-grade encryption.
+                  </p>
+                </div>
+              </Card>
+              <Card>
+                <div className="w-full h-full p-3 flex flex-col items-center justify-center text-white">
+                  <div className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-full p-2 mb-1.5">
+                    <Zap size={20} className="text-white" />
+                  </div>
+                  <h3 className="text-xs font-bold mb-1">Lightning Fast Access</h3>
+                  <p className="text-gray-300 text-center text-[10px] leading-tight">
+                    Access your files instantly from any device.
+                  </p>
+                </div>
+              </Card>
+            </CardSwap>
+          </div>
         </div>
       </div>
 
