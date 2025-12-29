@@ -21,9 +21,9 @@ The project focuses on clean code, modular structure, and scalability.
 
 ### Frontend
 - React
-- JavaScript (ES6+)
+- JavaScript & Typescript
 - HTML5
-- CSS3
+- Tailwind CSS
 
 ### Backend
 - Node.js
