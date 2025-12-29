@@ -244,9 +244,10 @@ interface DriveProps {
   onToggleStar: (fileName: string) => void;
   trashedFiles: Set<string>;
   onMoveToTrash: (fileName: string) => void;
+  onMarkAsSpam: (fileName: string) => void;
 }
 
-export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash }) => {
+export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, onMarkAsSpam }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -280,6 +281,11 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
 
   const cancelMoveToTrash = () => {
     setConfirmTrashFile(null);
+  };
+
+  const handleMarkAsSpam = (fileName: string) => {
+    onMarkAsSpam(fileName);
+    setOpenMenuFile(null);
   };
 
   useEffect(() => {
@@ -527,7 +533,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                             <MoreVertical size={20} className="text-black" />
                           </button>
                           {openMenuFile === file.name && (
-                            <div 
+                            <div
                               className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -540,6 +546,16 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                               >
                                 <Trash2 size={16} className="text-black" />
                                 <span className="text-black">Move to trash</span>
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMarkAsSpam(file.name);
+                                }}
+                              >
+                                <Trash2 size={16} className="text-red-600" />
+                                <span className="text-black">Mark as spam</span>
                               </button>
                               <button
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
