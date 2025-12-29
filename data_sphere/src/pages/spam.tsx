@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, AlertOctagon, RotateCcw, Trash2 } from 'lucide-react';
 
 interface FileItem {
@@ -60,7 +60,7 @@ interface SpamProps {
   onDeleteSpam: (fileName: string) => void;
 }
 
-export const Spam: React.FC<SpamProps> = ({ spamFiles, onMarkNotSpam, onDeleteSpam }) => {
+export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam }: SpamProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
