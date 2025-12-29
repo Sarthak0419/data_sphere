@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Trash2 } from 'lucide-react';
+import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Trash2, RotateCcw } from 'lucide-react';
 
 interface FileItem {
   name: string;
@@ -54,40 +54,18 @@ const parseSizeToBytes = (sizeStr: string): number => {
   }
 };
 
-interface StarredProps {
-  starredFiles: Set<string>;
-  onToggleStar: (fileName: string) => void;
+interface TrashProps {
   trashedFiles: Set<string>;
-  onMoveToTrash: (fileName: string) => void;
+  onRestoreFile: (fileName: string) => void;
+  onDeletePermanently: (fileName: string) => void;
 }
 
-export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash }) => {
+export const Trash: React.FC<TrashProps> = ({ trashedFiles, onRestoreFile, onDeletePermanently }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
-  const [confirmTrashFile, setConfirmTrashFile] = useState<string | null>(null);
-
-  const handleMoveToTrash = (fileName: string) => {
-    if (starredFiles.has(fileName)) {
-      setConfirmTrashFile(fileName);
-    } else {
-      onMoveToTrash(fileName);
-    }
-    setOpenMenuFile(null);
-  };
-
-  const confirmMoveToTrash = () => {
-    if (confirmTrashFile) {
-      onMoveToTrash(confirmTrashFile);
-      setConfirmTrashFile(null);
-    }
-  };
-
-  const cancelMoveToTrash = () => {
-    setConfirmTrashFile(null);
-  };
 
   useEffect(() => {
     // Load files from temp_dataset
@@ -109,9 +87,9 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
     setFiles(tempFiles);
   }, []);
 
-  // Filter to only show starred files and apply sorting
+  // Filter to only show trashed files and apply sorting
   const filteredAndSortedFiles = useMemo(() => {
-    let result = files.filter(file => starredFiles.has(file.name) && !trashedFiles.has(file.name));
+    let result = files.filter(file => trashedFiles.has(file.name));
     
     // Apply filter
     if (fileTypeFilter !== 'all') {
@@ -135,22 +113,25 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
     });
     
     return result;
-  }, [files, starredFiles, fileTypeFilter, sortBy, trashedFiles]);
+  }, [files, trashedFiles, fileTypeFilter, sortBy]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {
-    const starredFilesList = files.filter(f => starredFiles.has(f.name));
-    const types = new Set(starredFilesList.map(f => f.type));
+    const trashedFilesList = files.filter(f => trashedFiles.has(f.name));
+    const types = new Set(trashedFilesList.map(f => f.type));
     return Array.from(types).sort();
-  }, [files, starredFiles]);
+  }, [files, trashedFiles]);
 
   return (
     <div className="h-full">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-normal text-black">Starred</h1>
+        <div>
+          <h1 className="text-3xl font-normal text-black mb-2">Trash</h1>
+          <p className="text-gray-600 text-sm">Items in trash will be automatically deleted after 30 days</p>
+        </div>
         
         {/* Toggle Switch */}
-        <div className="relative">
+        <div className="relative ml-12">
           <input
             type="checkbox"
             id="viewToggle"
@@ -160,16 +141,16 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
           />
           <label
             htmlFor="viewToggle"
-            className="h-[60px] w-[120px] bg-white rounded-[30px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
+            className="h-[44px] w-[88px] bg-white rounded-[22px] flex items-center cursor-pointer relative transition-transform duration-400 hover:[transform:perspective(100px)_rotateX(5deg)_rotateY(-5deg)] shadow-[inset_0_0_5px_4px_rgba(255,255,255,1),inset_0_0_20px_1px_rgba(0,0,0,0.488),10px_20px_30px_rgba(0,0,0,0.096),inset_0_0_0_3px_rgba(0,0,0,0.3)]"
             style={{
               boxShadow: 'inset 0 0 5px 4px rgba(255, 255, 255, 1), inset 0 0 20px 1px rgba(0, 0, 0, 0.488), 10px 20px 30px rgba(0, 0, 0, 0.096), inset 0 0 0 3px rgba(0, 0, 0, 0.3)'
             }}
           >
             <div
-              className={`absolute h-[40px] w-[40px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
+              className={`absolute h-[30px] w-[30px] rounded-full shadow-[0_2px_1px_rgba(0,0,0,0.3),10px_10px_10px_rgba(0,0,0,0.3)] transition-all duration-400 ${
                 viewMode === 'grid'
-                  ? 'left-[70px] bg-gradient-to-br from-black to-[#414141]'
-                  : 'left-[10px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
+                  ? 'left-[51px] bg-gradient-to-br from-black to-[#414141]'
+                  : 'left-[7px] bg-gradient-to-br from-[#757272] via-white to-[#726f6f]'
               } flex items-center justify-center`}
               style={{
                 backgroundImage: viewMode === 'grid' 
@@ -178,9 +159,9 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
               }}
             >
               {viewMode === 'list' ? (
-                <List size={20} className="text-black" />
+                <List size={16} className="text-black" />
               ) : (
-                <LayoutGrid size={20} className="text-white" />
+                <LayoutGrid size={16} className="text-white" />
               )}
             </div>
           </label>
@@ -230,13 +211,13 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
       <div>
         {filteredAndSortedFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Star size={64} className="text-gray-300 mb-4" />
-            <h2 className="text-xl font-medium text-black mb-2">No starred files yet</h2>
-            <p className="text-gray-500">Star files to easily find them later</p>
+            <Trash2 size={64} className="text-gray-300 mb-4" />
+            <h2 className="text-xl font-medium text-black mb-2">Trash is empty</h2>
+            <p className="text-gray-500">Items you delete will appear here</p>
           </div>
         ) : (
           <>
-            <h2 className="text-lg font-medium text-black mb-4">Starred Files</h2>
+            <h2 className="text-lg font-medium text-black mb-4">Trashed Files</h2>
             
             {viewMode === 'list' ? (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -268,17 +249,14 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button 
-                              className="p-2 hover:bg-gray-200 rounded-full transition-all"
+                              className="p-2 hover:bg-gray-200 rounded-full transition-all opacity-0 group-hover:opacity-100"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleStar(file.name);
+                                onRestoreFile(file.name);
                               }}
-                              title="Remove from starred"
+                              title="Restore"
                             >
-                              <Star 
-                                size={20} 
-                                className="text-yellow-500 fill-yellow-500" 
-                              />
+                              <RotateCcw size={20} className="text-black" />
                             </button>
                             <div className="relative">
                               <button 
@@ -299,31 +277,23 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleMoveToTrash(file.name);
-                                    }}
-                                  >
-                                    <Trash2 size={16} className="text-black" />
-                                    <span className="text-black">Move to trash</span>
-                                  </button>
-                                  <button
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
+                                      onRestoreFile(file.name);
                                       setOpenMenuFile(null);
                                     }}
                                   >
-                                    <Download size={16} className="text-black" />
-                                    <span className="text-black">Download</span>
+                                    <RotateCcw size={16} className="text-black" />
+                                    <span className="text-black">Restore</span>
                                   </button>
                                   <button
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      onDeletePermanently(file.name);
                                       setOpenMenuFile(null);
                                     }}
                                   >
-                                    <Share2 size={16} className="text-black" />
-                                    <span className="text-black">Share</span>
+                                    <Trash2 size={16} className="text-red-600" />
+                                    <span className="text-red-600">Delete forever</span>
                                   </button>
                                 </div>
                               )}
@@ -338,13 +308,12 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {filteredAndSortedFiles.map((file, index) => {
-                  // Determine grid columns based on screen size
                   const getColumnsCount = () => {
-                    if (window.innerWidth >= 1280) return 6; // xl
-                    if (window.innerWidth >= 1024) return 5; // lg
-                    if (window.innerWidth >= 768) return 4; // md
-                    if (window.innerWidth >= 640) return 3; // sm
-                    return 2; // default
+                    if (window.innerWidth >= 1280) return 6;
+                    if (window.innerWidth >= 1024) return 5;
+                    if (window.innerWidth >= 768) return 4;
+                    if (window.innerWidth >= 640) return 3;
+                    return 2;
                   };
                   const columnsCount = getColumnsCount();
                   const isLeftSide = index % columnsCount < columnsCount / 2;
@@ -354,120 +323,65 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                       key={file.name} 
                       className="group bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-gray-300 cursor-pointer transition-all p-4 relative"
                     >
-                    <div className="flex flex-col items-center text-center">
-                      <div className="mb-3 p-4 bg-gray-50 rounded-lg group-hover:bg-gray-100 transition-colors">
-                        {getFileIcon(file.name)}
-                      </div>
-                      <div className="w-full">
-                        <p className="text-sm font-medium text-black truncate mb-1" title={file.name}>
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-black">{file.size}</p>
-                      </div>
-                      <div className="absolute top-2 right-2">
-                        <div className="absolute -top-1 -left-1">
-                          <Star size={12} className="text-yellow-500 fill-yellow-500" />
+                      <div className="flex flex-col items-center text-center">
+                        <div className="mb-3 p-4 bg-gray-50 rounded-lg group-hover:bg-gray-100 transition-colors">
+                          {getFileIcon(file.name)}
                         </div>
-                        <button 
-                          className="p-1.5 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity relative"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuFile(openMenuFile === file.name ? null : file.name);
-                          }}
-                        >
-                          <MoreVertical size={16} className="text-black" />
-                        </button>
-                        {openMenuFile === file.name && (
-                          <div 
-                            className={`absolute ${isLeftSide ? 'left-0' : 'right-0'} mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10`}
-                            onClick={(e) => e.stopPropagation()}
+                        <div className="w-full">
+                          <p className="text-sm font-medium text-black truncate mb-1" title={file.name}>
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-black">{file.size}</p>
+                        </div>
+                        <div className="absolute top-2 right-2">
+                          <button 
+                            className="p-1.5 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity relative"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuFile(openMenuFile === file.name ? null : file.name);
+                            }}
                           >
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onToggleStar(file.name);
-                                setOpenMenuFile(null);
-                              }}
+                            <MoreVertical size={16} className="text-black" />
+                          </button>
+                          {openMenuFile === file.name && (
+                            <div 
+                              className={`absolute ${isLeftSide ? 'left-0' : 'right-0'} mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10`}
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <Star size={16} className="text-yellow-500 fill-yellow-500" />
-                              <span className="text-black">Remove from starred</span>
-                            </button>
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleMoveToTrash(file.name);
-                              }}
-                            >
-                              <Trash2 size={16} className="text-black" />
-                              <span className="text-black">Move to trash</span>
-                            </button>
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuFile(null);
-                              }}
-                            >
-                              <Download size={16} className="text-black" />
-                              <span className="text-black">Download</span>
-                </button>
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuFile(null);
-                              }}
-                            >
-                              <Share2 size={16} className="text-black" />
-                              <span className="text-black">Share</span>
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRestoreFile(file.name);
+                                  setOpenMenuFile(null);
+                                }}
+                              >
+                                <RotateCcw size={16} className="text-black" />
+                                <span className="text-black">Restore</span>
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeletePermanently(file.name);
+                                  setOpenMenuFile(null);
+                                }}
+                              >
+                                <Trash2 size={16} className="text-red-600" />
+                                <span className="text-red-600">Delete forever</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );})}
+                  );
+                })}
               </div>
             )}
           </>
         )}
       </div>
-
-      {/* Confirmation Modal for Starred Files */}
-      {confirmTrashFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={cancelMoveToTrash}>
-          <div 
-            className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Star size={24} className="text-yellow-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-black mb-2">This file is starred</h3>
-                <p className="text-black">Do you want to move it to trash?</p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={cancelMoveToTrash}
-                className="px-6 py-2 text-sm font-medium text-black bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                No
-              </button>
-              <button
-                onClick={confirmMoveToTrash}
-                className="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

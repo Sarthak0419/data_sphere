@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Cloud, Lock, Zap } from 'lucide-react';
+import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Cloud, Lock, Zap, Trash2 } from 'lucide-react';
 import CardSwap, { Card } from '../components/CardSwap';
 
 interface FileItem {
@@ -242,21 +242,44 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
 interface DriveProps {
   starredFiles: Set<string>;
   onToggleStar: (fileName: string) => void;
+  trashedFiles: Set<string>;
+  onMoveToTrash: (fileName: string) => void;
 }
 
-export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
+export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
+  const [confirmTrashFile, setConfirmTrashFile] = useState<string | null>(null);
 
   const toggleStar = (fileName: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
     onToggleStar(fileName);
+  };
+
+  const handleMoveToTrash = (fileName: string) => {
+    if (starredFiles.has(fileName)) {
+      setConfirmTrashFile(fileName);
+    } else {
+      onMoveToTrash(fileName);
+    }
+    setOpenMenuFile(null);
+  };
+
+  const confirmMoveToTrash = () => {
+    if (confirmTrashFile) {
+      onMoveToTrash(confirmTrashFile);
+      setConfirmTrashFile(null);
+    }
+  };
+
+  const cancelMoveToTrash = () => {
+    setConfirmTrashFile(null);
   };
 
   useEffect(() => {
@@ -281,9 +304,10 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
 
   // Filter and sort files
   const filteredAndSortedFiles = useMemo(() => {
-    let result = [...files];
+    // First filter out trashed files
+    let result = files.filter(file => !trashedFiles.has(file.name));
     
-    // Apply filter
+    // Apply type filter
     if (fileTypeFilter !== 'all') {
       result = result.filter(file => file.type === fileTypeFilter);
     }
@@ -305,7 +329,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
     });
     
     return result;
-  }, [files, fileTypeFilter, sortBy]);
+  }, [files, fileTypeFilter, sortBy, trashedFiles]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {
@@ -316,14 +340,14 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
   return (
     <div className="h-full">
       {/* Top Section with Title and Cards */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex justify-between items-start mb-4">
         {/* Left Side - Title and Filters */}
         <div className="flex-shrink-0">
           <h1 className="text-3xl font-normal text-black mb-2">My Storage</h1>
           <p className="text-gray-600 text-sm mb-4">Manage and organize your files</p>
           
           {/* Filter and Sort Controls */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mt-3">
             <div className="flex items-center gap-2">
               <Filter size={18} className="text-black" />
               <select
@@ -359,7 +383,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
             </div>
 
             {/* Toggle Switch */}
-            <div className="relative ml-8">
+            <div className="relative ml-12">
               <input
                 type="checkbox"
                 id="viewToggle"
@@ -398,13 +422,13 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
         </div>
 
         {/* Right Side - Cards */}
-        <div className="flex-shrink-0 -mt-2 mr-16">
-          <div className="relative h-[200px] overflow-visible">
+        <div className="flex-shrink-0 -mt-6 mr-16">
+          <div className="relative h-[170px] overflow-visible">
             <CardSwap
-              width={200}
-              height={130}
-              cardDistance={25}
-              verticalDistance={30}
+              width={180}
+              height={115}
+              cardDistance={22}
+              verticalDistance={26}
               delay={5000}
               pauseOnHover={true}
             >
@@ -492,14 +516,54 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
                             className={starredFiles.has(file.name) ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
                           />
                         </button>
-                        <button 
-                          className="p-2 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <MoreVertical size={20} className="text-black" />
-                        </button>
+                        <div className="relative">
+                          <button 
+                            className="p-2 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuFile(openMenuFile === file.name ? null : file.name);
+                            }}
+                          >
+                            <MoreVertical size={20} className="text-black" />
+                          </button>
+                          {openMenuFile === file.name && (
+                            <div 
+                              className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveToTrash(file.name);
+                                }}
+                              >
+                                <Trash2 size={16} className="text-black" />
+                                <span className="text-black">Move to trash</span>
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuFile(null);
+                                }}
+                              >
+                                <Download size={16} className="text-black" />
+                                <span className="text-black">Download</span>
+                              </button>
+                              <button
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuFile(null);
+                                }}
+                              >
+                                <Share2 size={16} className="text-black" />
+                                <span className="text-black">Share</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -577,6 +641,16 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleMoveToTrash(file.name);
+                          }}
+                        >
+                          <Trash2 size={16} className="text-black" />
+                          <span className="text-black">Move to trash</span>
+                        </button>
+                        <button
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setOpenMenuFile(null);
                           }}
                         >
@@ -609,6 +683,40 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar }) => {
           file={selectedFile} 
           onClose={() => setSelectedFile(null)} 
         />
+      )}
+
+      {/* Confirmation Modal for Starred Files */}
+      {confirmTrashFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={cancelMoveToTrash}>
+          <div 
+            className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4 mb-6">
+              <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Star size={24} className="text-yellow-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-black mb-2">This file is starred</h3>
+                <p className="text-black">Do you want to move it to trash?</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelMoveToTrash}
+                className="px-6 py-2 text-sm font-medium text-black bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                No
+              </button>
+              <button
+                onClick={confirmMoveToTrash}
+                className="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
