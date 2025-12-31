@@ -1,7 +1,7 @@
 
 # Data Sphere
 
-A scalable, cloud-ready file management system inspired by Google Drive.  
+A scalable, cloud-ready file management system .
 This application allows users to upload, manage, and organize files efficiently with a modern UI and a reliable relational database.
 
 
