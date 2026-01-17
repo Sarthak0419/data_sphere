@@ -239,15 +239,23 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
   );
 };
 
+interface UploadedFile {
+  name: string;
+  type: string;
+  date: string;
+  size: string;
+}
+
 interface DriveProps {
   starredFiles: Set<string>;
   onToggleStar: (fileName: string) => void;
   trashedFiles: Set<string>;
   onMoveToTrash: (fileName: string) => void;
   onMarkAsSpam: (fileName: string) => void;
+  uploadedFiles?: UploadedFile[];
 }
 
-export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, onMarkAsSpam }) => {
+export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, onMarkAsSpam, uploadedFiles = [] }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -307,6 +315,17 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
     
     setFiles(tempFiles);
   }, []);
+
+  // Add uploaded files to the file list
+  useEffect(() => {
+    if (uploadedFiles.length > 0) {
+      setFiles(prev => {
+        const existingNames = new Set(prev.map(f => f.name));
+        const newFiles = uploadedFiles.filter(f => !existingNames.has(f.name));
+        return [...prev, ...newFiles];
+      });
+    }
+  }, [uploadedFiles]);
 
   // Filter and sort files
   const filteredAndSortedFiles = useMemo(() => {

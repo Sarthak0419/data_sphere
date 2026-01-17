@@ -1,7 +1,11 @@
 import React from 'react';
 import { Search, HelpCircle, Settings, Grip, UserCircle, Menu } from 'lucide-react';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onUserClick?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onUserClick }) => {
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="flex items-center gap-3 w-60">
@@ -49,7 +53,7 @@ export const Header: React.FC = () => {
         <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-700">
           <Grip size={24} className="stroke-[2.5px]" />
         </div>
-        <div className="ml-2 cursor-pointer">
+        <div className="ml-2 cursor-pointer" onClick={onUserClick}>
            <UserCircle size={28} className="text-blue-700" />
         </div>
       </div>

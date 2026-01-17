@@ -23,13 +23,20 @@ const navItems = [
   { icon: Cloud, label: 'Storage', path: '/drive/storage' },
 ];
 
-export const Sidebar: React.FC = () => {
+interface SidebarProps {
+  onNewClick?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onNewClick }) => {
   const location = useLocation();
   
   return (
     <aside className="w-64 py-4 flex flex-col h-[calc(100vh-64px)] hidden lg:flex border-r border-gray-200 bg-white fixed left-0 top-[64px]">
       <div className="px-4 mb-6">
-        <button className="group relative w-[120px] h-[60px] cursor-pointer flex items-center border-2 border-black shadow-[4px_4px_#323232] bg-white rounded-[10px] overflow-hidden transition-all duration-300 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none">
+        <button 
+          onClick={onNewClick}
+          className="group relative w-[120px] h-[60px] cursor-pointer flex items-center border-2 border-black shadow-[4px_4px_#323232] bg-white rounded-[10px] overflow-hidden transition-all duration-300 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+        >
           <span className="translate-x-[24px] text-black font-semibold transition-all duration-300 group-hover:text-transparent">
             New
           </span>
