@@ -26,10 +26,10 @@ export const Login: React.FC<LoginProps> = ({ isOpen, onClose }) => {
         
         {/* Login Form */}
         <div
-          className={`absolute right-0 w-1/2 h-full flex items-center px-10 transition-all duration-[600ms] ease-in-out ${
-            isActive ? 'right-1/2' : 'right-0'
+          className={`absolute w-1/2 h-full flex items-center px-10 transition-all duration-[600ms] ease-in-out ${
+            isActive ? 'invisible opacity-0 right-1/2' : 'visible opacity-100 right-0'
           }`}
-          style={{ transitionDelay: '1.2s' }}
+          style={{ transitionDelay: isActive ? '0s' : '1.2s' }}
         >
           <form className="w-full" onSubmit={(e) => e.preventDefault()}>
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Login</h1>

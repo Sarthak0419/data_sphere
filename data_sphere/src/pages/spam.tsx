@@ -58,9 +58,10 @@ interface SpamProps {
   spamFiles: Set<string>;
   onMarkNotSpam: (fileName: string) => void;
   onDeleteSpam: (fileName: string) => void;
+  searchQuery?: string;
 }
 
-export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam }: SpamProps) => {
+export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' }: SpamProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
@@ -91,6 +92,15 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam }: SpamProps) => {
   const filteredAndSortedFiles = useMemo(() => {
     let result = files.filter(file => spamFiles.has(file.name));
 
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(file => 
+        file.name.toLowerCase().includes(query) ||
+        file.type.toLowerCase().includes(query)
+      );
+    }
+
     // Apply filter
     if (fileTypeFilter !== 'all') {
       result = result.filter(file => file.type === fileTypeFilter);
@@ -113,7 +123,7 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam }: SpamProps) => {
     });
 
     return result;
-  }, [files, spamFiles, fileTypeFilter, sortBy]);
+  }, [files, spamFiles, fileTypeFilter, sortBy, searchQuery]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {

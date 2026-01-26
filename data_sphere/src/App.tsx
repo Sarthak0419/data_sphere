@@ -20,7 +20,17 @@ function App() {
   const [spamFiles, setSpamFiles] = useState<Set<string>>(new Set());
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [showLogin, setShowLogin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addToSearchHistory = (query: string) => {
+    if (!query.trim()) return;
+    setSearchHistory(prev => {
+      const filtered = prev.filter(item => item !== query);
+      return [query, ...filtered].slice(0, 4);
+    });
+  };
 
   const markAsSpam = (fileName: string) => {
     setSpamFiles(prev => {
@@ -122,12 +132,12 @@ function App() {
       />
       <Login isOpen={showLogin} onClose={() => setShowLogin(false)} />
       <Routes>
-        <Route path="/" element={<MainLayout onNewClick={triggerFileUpload} onUserClick={() => setShowLogin(true)} />}>
+        <Route path="/" element={<MainLayout onNewClick={triggerFileUpload} onUserClick={() => setShowLogin(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} searchHistory={searchHistory} onAddToSearchHistory={addToSearchHistory} />}>
           <Route index element={<Navigate to="/drive/my-drive" replace />} />
-          <Route path="drive/my-drive" element={<Drive starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} onMarkAsSpam={markAsSpam} uploadedFiles={uploadedFiles} />} />
-          <Route path="drive/starred" element={<Starred starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} />} />
-          <Route path="drive/trash" element={<Trash trashedFiles={trashedFiles} onRestoreFile={restoreFile} onDeletePermanently={deletePermanently} />} />
-          <Route path="drive/spam" element={<Spam spamFiles={spamFiles} onMarkNotSpam={markNotSpam} onDeleteSpam={deleteSpam} />} />
+          <Route path="drive/my-drive" element={<Drive starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} onMarkAsSpam={markAsSpam} uploadedFiles={uploadedFiles} searchQuery={searchQuery} />} />
+          <Route path="drive/starred" element={<Starred starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} searchQuery={searchQuery} />} />
+          <Route path="drive/trash" element={<Trash trashedFiles={trashedFiles} onRestoreFile={restoreFile} onDeletePermanently={deletePermanently} searchQuery={searchQuery} />} />
+          <Route path="drive/spam" element={<Spam spamFiles={spamFiles} onMarkNotSpam={markNotSpam} onDeleteSpam={deleteSpam} searchQuery={searchQuery} />} />
           <Route path="*" element={<div className="p-4">Page not found</div>} />
         </Route>
       </Routes>

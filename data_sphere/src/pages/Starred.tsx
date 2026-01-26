@@ -59,9 +59,10 @@ interface StarredProps {
   onToggleStar: (fileName: string) => void;
   trashedFiles: Set<string>;
   onMoveToTrash: (fileName: string) => void;
+  searchQuery?: string;
 }
 
-export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash }) => {
+export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, searchQuery = '' }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
@@ -113,6 +114,15 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
   const filteredAndSortedFiles = useMemo(() => {
     let result = files.filter(file => starredFiles.has(file.name) && !trashedFiles.has(file.name));
     
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(file => 
+        file.name.toLowerCase().includes(query) ||
+        file.type.toLowerCase().includes(query)
+      );
+    }
+    
     // Apply filter
     if (fileTypeFilter !== 'all') {
       result = result.filter(file => file.type === fileTypeFilter);
@@ -135,7 +145,7 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
     });
     
     return result;
-  }, [files, starredFiles, fileTypeFilter, sortBy, trashedFiles]);
+  }, [files, starredFiles, fileTypeFilter, sortBy, trashedFiles, searchQuery]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {

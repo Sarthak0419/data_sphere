@@ -253,9 +253,10 @@ interface DriveProps {
   onMoveToTrash: (fileName: string) => void;
   onMarkAsSpam: (fileName: string) => void;
   uploadedFiles?: UploadedFile[];
+  searchQuery?: string;
 }
 
-export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, onMarkAsSpam, uploadedFiles = [] }) => {
+export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, onMarkAsSpam, uploadedFiles = [], searchQuery = '' }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
@@ -332,6 +333,15 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
     // First filter out trashed files
     let result = files.filter(file => !trashedFiles.has(file.name));
     
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(file => 
+        file.name.toLowerCase().includes(query) ||
+        file.type.toLowerCase().includes(query)
+      );
+    }
+    
     // Apply type filter
     if (fileTypeFilter !== 'all') {
       result = result.filter(file => file.type === fileTypeFilter);
@@ -354,7 +364,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
     });
     
     return result;
-  }, [files, fileTypeFilter, sortBy, trashedFiles]);
+  }, [files, fileTypeFilter, sortBy, trashedFiles, searchQuery]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {
