@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { Drive } from './pages/Drive';
@@ -15,6 +15,7 @@ export interface UploadedFile {
 }
 
 function App() {
+  // 1. STATE DEFINITIONS
   const [starredFiles, setStarredFiles] = useState<Set<string>>(new Set());
   const [trashedFiles, setTrashedFiles] = useState<Set<string>>(new Set());
   const [spamFiles, setSpamFiles] = useState<Set<string>>(new Set());
@@ -24,6 +25,7 @@ function App() {
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 2. HELPER FUNCTIONS
   const addToSearchHistory = (query: string) => {
     if (!query.trim()) return;
     setSearchHistory(prev => {
@@ -90,7 +92,6 @@ function App() {
       newSet.delete(fileName);
       return newSet;
     });
-    // In a real app, this would permanently delete the file from the database
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -111,7 +112,6 @@ function App() {
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
-    // Reset input so same file can be uploaded again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -121,6 +121,15 @@ function App() {
     fileInputRef.current?.click();
   };
 
+  // 3. SERVER CONNECTION TEST (Placed correctly)
+  useEffect(() => {
+    fetch('http://localhost:5000')
+      .then(response => response.text())
+      .then(data => console.log("📢 Server says:", data))
+      .catch(error => console.error("❌ Error:", error));
+  }, []);
+
+  // 4. MAIN UI RENDER (Only one return!)
   return (
     <BrowserRouter>
       <input
