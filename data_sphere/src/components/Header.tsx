@@ -1,22 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, HelpCircle, Settings, Grip, UserCircle, Menu, Clock, X } from 'lucide-react';
+import { Search, HelpCircle, Settings, Grip, UserCircle, Menu, Clock, LogOut, UserPlus } from 'lucide-react';
+import { useAuth } from './AuthContext';
 
 interface HeaderProps {
-  onUserClick?: () => void;
+  onLogout?: () => void;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   searchHistory?: string[];
   onAddToSearchHistory?: (query: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onUserClick, searchQuery = '', onSearchChange, searchHistory = [], onAddToSearchHistory }) => {
+export const Header: React.FC<HeaderProps> = ({ onLogout, searchQuery = '', onSearchChange, searchHistory = [], onAddToSearchHistory }) => {
   const [showHistory, setShowHistory] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const { user, accounts, switchAccount, addAccount } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
         setShowHistory(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
       }
     };
 
@@ -104,8 +111,108 @@ export const Header: React.FC<HeaderProps> = ({ onUserClick, searchQuery = '', o
         <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer text-gray-700">
           <Grip size={24} className="stroke-[2.5px]" />
         </div>
-        <div className="ml-2 cursor-pointer" onClick={onUserClick}>
-           <UserCircle size={28} className="text-blue-700" />
+        <div className="ml-2 relative" ref={userMenuRef}>
+          <div 
+            className="cursor-pointer flex items-center gap-2"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+          >
+            {user?.profilePic ? (
+              <img 
+                src={user.profilePic} 
+                alt={user.username}
+                className="w-8 h-8 rounded-full object-cover border-2 border-blue-500"
+              />
+            ) : (
+              <UserCircle size={28} className="text-blue-700" />
+            )}
+          </div>
+          
+          {/* User Dropdown Menu */}
+          {showUserMenu && (
+            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50">
+              {/* Current User Header */}
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  {user?.profilePic ? (
+                    <img 
+                      src={user.profilePic} 
+                      alt={user.username}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md"
+                    />
+                  ) : (
+                    <UserCircle size={56} className="text-blue-600" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-semibold text-gray-900 truncate">{user?.username || 'User'}</p>
+                    <p className="text-sm text-gray-500 truncate">{user?.email || 'email@example.com'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Accounts */}
+              {accounts.length > 1 && (
+                <div className="border-b border-gray-100">
+                  <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Switch Account
+                  </div>
+                  {accounts
+                    .filter(session => session.user.id !== user?.id)
+                    .map(session => (
+                      <div
+                        key={session.user.id}
+                        onClick={() => {
+                          switchAccount(session.user.id);
+                          setShowUserMenu(false);
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        {session.user.profilePic ? (
+                          <img 
+                            src={session.user.profilePic} 
+                            alt={session.user.username}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <UserCircle size={40} className="text-gray-400" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{session.user.username}</p>
+                          <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+
+              {/* Add Account Option */}
+              <div
+                onClick={() => {
+                  addAccount();
+                  setShowUserMenu(false);
+                }}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100"
+              >
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <UserPlus size={20} className="text-gray-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">Add another account</span>
+              </div>
+
+              {/* Sign Out */}
+              <button
+                onClick={() => {
+                  onLogout?.();
+                  setShowUserMenu(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-red-50 text-red-600 transition-colors"
+              >
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                  <LogOut size={18} />
+                </div>
+                <span className="text-sm font-medium">Sign out</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

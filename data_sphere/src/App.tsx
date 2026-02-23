@@ -6,6 +6,8 @@ import { Starred } from './pages/Starred';
 import { Trash } from './pages/Trash';
 import { Spam } from './pages/spam';
 import { Login } from './pages/Login';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { useAuth } from './components/AuthContext';
 
 export interface UploadedFile {
   name: string;
@@ -20,10 +22,10 @@ function App() {
   const [trashedFiles, setTrashedFiles] = useState<Set<string>>(new Set());
   const [spamFiles, setSpamFiles] = useState<Set<string>>(new Set());
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [showLogin, setShowLogin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { logout } = useAuth();
 
   // 2. HELPER FUNCTIONS
   const addToSearchHistory = (query: string) => {
@@ -139,9 +141,16 @@ function App() {
         className="hidden"
         multiple
       />
-      <Login isOpen={showLogin} onClose={() => setShowLogin(false)} />
       <Routes>
-        <Route path="/" element={<MainLayout onNewClick={triggerFileUpload} onUserClick={() => setShowLogin(true)} searchQuery={searchQuery} onSearchChange={setSearchQuery} searchHistory={searchHistory} onAddToSearchHistory={addToSearchHistory} />}>
+        {/* Public route - Login page */}
+        <Route path="/login" element={<Login />} />
+        
+        {/* Protected routes - require authentication */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <MainLayout onNewClick={triggerFileUpload} onLogout={logout} searchQuery={searchQuery} onSearchChange={setSearchQuery} searchHistory={searchHistory} onAddToSearchHistory={addToSearchHistory} />
+          </ProtectedRoute>
+        }>
           <Route index element={<Navigate to="/drive/my-drive" replace />} />
           <Route path="drive/my-drive" element={<Drive starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} onMarkAsSpam={markAsSpam} uploadedFiles={uploadedFiles} searchQuery={searchQuery} />} />
           <Route path="drive/starred" element={<Starred starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} searchQuery={searchQuery} />} />
