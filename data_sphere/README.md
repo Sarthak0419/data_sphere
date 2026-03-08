@@ -1,111 +1,73 @@
+# React + TypeScript + Vite
 
-# Data Sphere
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-A scalable, cloud-ready file management system .
-This application allows users to upload, manage, and organize files efficiently with a modern UI and a reliable relational database.
+Currently, two official plugins are available:
 
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-##  📌 Overview
- Data Sphere is a full-stack web application built to demonstrate real-world system design, frontend architecture, and database management.  
-The project focuses on clean code, modular structure, and scalability.
-##  🎯 Key Features
-- File upload and storage
-- Starred files management
-- Listing spam files
-- Organized file listing
-- Responsive and user-friendly UI
-- Secure and structured data handling
-- Scalable backend architecture
-## 🧱 Tech Stack  
+## React Compiler
 
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-### Frontend
-- React
-- JavaScript & Typescript
-- HTML5
-- Tailwind CSS
+## Expanding the ESLint configuration
 
-### Backend
-- Node.js
-- Express.js
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-### Database
-- PostgreSQL
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-### Tools & Platforms
-- Git & GitHub
-- REST API
-## Run Locally
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-Clone the project
-
-```bash
-  git clone https://github.com/Sarthak0419/data_sphere.git
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-Go to the project directory
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```bash
-  cd data_sphere
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
-
-Install dependencies
-
-```bash
-  npm install
-```
-
-Start the server
-
-```bash
-  npm run dev
-```
-
-## 🎨 Color Palette Reference
-
-This section lists all color values used in the global CSS configuration of the project.
-
----
-
-### 🌗 Base / Theme Colors
-
-| Color Code | Usage |
-|-----------|-------|
-| `#242424` | Dark mode background |
-| `#ffffff` | Light mode background |
-| `rgba(255, 255, 255, 0.87)` | Default text color (dark mode) |
-| `#213547` | Default text color (light mode) |
-
----
-
-### 🔗 Link Colors
-
-| Color Code | Usage |
-|-----------|-------|
-| `#646cff` | Primary link color |
-| `#535bf2` | Link hover color (dark mode) |
-| `#747bff` | Link hover color (light mode) |
-
----
-
-### 🔘 Button Colors
-
-| Color Code | Usage |
-|-----------|-------|
-| `#1a1a1a` | Button background (dark mode) |
-| `#f9f9f9` | Button background (light mode) |
-| `#646cff` | Button border on hover |
-
----
-
-### 🧠 System / Browser Defaults
-
-| Value | Description |
-|------|-------------|
-| `color-scheme: light dark` | Enables light & dark theme support |
-| `-webkit-focus-ring-color` | Browser default focus outline color |
-
----
-
-
-
