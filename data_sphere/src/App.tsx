@@ -102,18 +102,59 @@ function App() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    const newFiles: UploadedFile[] = Array.from(files).map(file => ({
-      name: file.name,
-      type: file.name.split('.').pop() || 'file',
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      size: formatFileSize(file.size),
-    }));
+    // Get auth token from localStorage
+    const storedAccounts = localStorage.getItem('accountSessions');
+    const activeUserId = localStorage.getItem('activeUserId');
+    let token: string | null = null;
 
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+    if (storedAccounts && activeUserId) {
+      const accounts = JSON.parse(storedAccounts);
+      const activeSession = accounts.find((s: { user: { id: string }; token: string }) => s.user.id === activeUserId);
+      token = activeSession?.token || null;
+    }
+
+    if (!token) {
+      console.error('No auth token found. Please log in.');
+      return;
+    }
+
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('http://localhost:5000/api/files/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          console.log('✅ File uploaded to S3:', data);
+          // Add to local state for UI update
+          const newFile: UploadedFile = {
+            name: file.name,
+            type: file.name.split('.').pop() || 'file',
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            size: formatFileSize(file.size),
+          };
+          setUploadedFiles(prev => [...prev, newFile]);
+        } else {
+          console.error('❌ Upload failed:', data.message);
+        }
+      } catch (error) {
+        console.error('❌ Upload error:', error);
+      }
+    }
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

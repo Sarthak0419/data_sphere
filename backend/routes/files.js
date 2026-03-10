@@ -10,6 +10,9 @@ const router = express.Router();
 // 2. uploadToS3.single('file'): Streams the file to AWS S3
 router.post('/upload', verifyToken, uploadToS3.single('file'), async (req, res) => {
   try {
+    console.log('Upload request received');
+    console.log('req.file:', req.file);
+    
     if (!req.file) {
       return res.status(400).json({ message: 'No file provided' });
     }

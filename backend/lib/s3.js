@@ -4,6 +4,14 @@ const multer = require('multer');
 const multerS3 = require('multer-s3');
 require('dotenv').config();
 
+// Debug: Log S3 configuration on startup
+console.log('S3 Config:', {
+  region: process.env.AWS_REGION,
+  bucket: process.env.AWS_S3_BUCKET_NAME,
+  hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+  hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY
+});
+
 // 1. Initialize the S3 Client
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -18,8 +26,9 @@ const uploadToS3 = multer({
   storage: multerS3({
     s3: s3Client,
     bucket: process.env.AWS_S3_BUCKET_NAME,
-    // Ensure files are kept private
-    acl: 'private', 
+    // Explicitly suppress ACL header so uploads work regardless of whether
+    // the bucket has ACLs enabled or uses "Bucket Owner Enforced" ownership
+    acl: (req, file, cb) => cb(null, null),
     metadata: function (req, file, cb) {
       cb(null, { fieldName: file.fieldname });
     },
