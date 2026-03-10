@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaPg } = require('@prisma/adapter-pg');
 const { Pool } = require('pg');
+const fileRoutes = require('./routes/files');
 
 const app = express();
 
@@ -28,6 +29,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 })); 
 app.use(express.json());
+
+app.use('/api/files', fileRoutes);
 
 // 1. Test route
 app.get('/', (req, res) => {
