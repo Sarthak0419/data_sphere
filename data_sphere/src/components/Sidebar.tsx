@@ -15,7 +15,7 @@ import {
 const navItems = [
   { icon: HardDrive, label: 'My Storage', path: '/drive/my-drive' },
   { icon: Monitor, label: 'Computers', path: '/drive/computers' },
-  { icon: Users, label: 'Shared with me', path: '/drive/shared' },
+  { icon: Users, label: 'Shared with me', path: '/drive/shared-with-me' },
   { icon: Clock, label: 'Recent', path: '/drive/recent' },
   { icon: Star, label: 'Starred', path: '/drive/starred' },
   { icon: AlertOctagon, label: 'Spam', path: '/drive/spam' },

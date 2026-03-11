@@ -2,10 +2,14 @@ import { useState, useRef, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { Drive } from './pages/Drive';
+import { Recent } from './pages/Recent';
+import { SharedWithMe } from './pages/SharedWithMe';
+import { Computers } from './pages/Comuters';
 import { Starred } from './pages/Starred';
 import { Trash } from './pages/Trash';
 import { Spam } from './pages/spam';
 import { Login } from './pages/Login';
+import StoragePage from './pages/Storage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './components/AuthContext';
 
@@ -153,9 +157,13 @@ function App() {
         }>
           <Route index element={<Navigate to="/drive/my-drive" replace />} />
           <Route path="drive/my-drive" element={<Drive starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} onMarkAsSpam={markAsSpam} uploadedFiles={uploadedFiles} searchQuery={searchQuery} />} />
+          <Route path="drive/recent" element={<Recent starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} searchQuery={searchQuery} />} />
+          <Route path="drive/shared-with-me" element={<SharedWithMe starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} searchQuery={searchQuery} />} />
+          <Route path="drive/computers" element={<Computers searchQuery={searchQuery} />} />
           <Route path="drive/starred" element={<Starred starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} searchQuery={searchQuery} />} />
           <Route path="drive/trash" element={<Trash trashedFiles={trashedFiles} onRestoreFile={restoreFile} onDeletePermanently={deletePermanently} searchQuery={searchQuery} />} />
           <Route path="drive/spam" element={<Spam spamFiles={spamFiles} onMarkNotSpam={markNotSpam} onDeleteSpam={deleteSpam} searchQuery={searchQuery} />} />
+          <Route path="drive/storage" element={<StoragePage />} />
           <Route path="*" element={<div className="p-4">Page not found</div>} />
         </Route>
       </Routes>
