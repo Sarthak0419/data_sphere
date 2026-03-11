@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Folder, FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Cloud, Lock, Zap, Trash2 } from 'lucide-react';
+import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Cloud, Lock, Zap, Trash2 } from 'lucide-react';
 import CardSwap, { Card } from '../components/CardSwap';
 
 interface FileItem {
+  id: string;
   name: string;
   type: string;
   date: string;
   size: string;
-  starred?: boolean;
+  isStarred: boolean;
 }
 
 const getFileIcon = (filename: string) => {
@@ -36,9 +37,29 @@ const getFileIcon = (filename: string) => {
   }
 };
 
-const getFileSize = (filename: string): string => {
-  const sizes = ['1.2 KB', '2.4 KB', '5.8 KB', '12.3 KB', '24.5 KB', '156 KB', '1.2 MB', '2.8 MB'];
-  return sizes[Math.floor(Math.random() * sizes.length)];
+const getAuthToken = (): string | null => {
+  const storedAccounts = localStorage.getItem('accountSessions');
+  const activeUserId = localStorage.getItem('activeUserId');
+  if (!storedAccounts || !activeUserId) return null;
+  const accounts = JSON.parse(storedAccounts);
+  const session = accounts.find((s: { user: { id: string }; token: string }) => s.user.id === activeUserId);
+  return session?.token || null;
+};
+
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+const patchFile = async (id: string, data: Record<string, unknown>): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) return;
+  await fetch(`http://localhost:5000/api/files/${id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
 };
 
 const parseSizeToBytes = (sizeStr: string): number => {
@@ -247,43 +268,42 @@ interface UploadedFile {
 }
 
 interface DriveProps {
-  starredFiles: Set<string>;
-  onToggleStar: (fileName: string) => void;
-  trashedFiles: Set<string>;
-  onMoveToTrash: (fileName: string) => void;
-  onMarkAsSpam: (fileName: string) => void;
   uploadedFiles?: UploadedFile[];
   searchQuery?: string;
 }
 
-export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, onMarkAsSpam, uploadedFiles = [], searchQuery = '' }) => {
+export const Drive: React.FC<DriveProps> = ({ uploadedFiles = [], searchQuery = '' }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
   const [confirmTrashFile, setConfirmTrashFile] = useState<string | null>(null);
 
-  const toggleStar = (fileName: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    onToggleStar(fileName);
+  const toggleStar = async (file: FileItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    await patchFile(file.id, { isStarred: !file.isStarred });
+    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, isStarred: !file.isStarred } : f));
   };
 
-  const handleMoveToTrash = (fileName: string) => {
-    if (starredFiles.has(fileName)) {
-      setConfirmTrashFile(fileName);
+  const handleMoveToTrash = (file: FileItem) => {
+    if (file.isStarred) {
+      setConfirmTrashFile(file.id);
     } else {
-      onMoveToTrash(fileName);
+      patchFile(file.id, { isTrashed: true });
+      setFiles(prev => prev.filter(f => f.id !== file.id));
     }
     setOpenMenuFile(null);
   };
 
-  const confirmMoveToTrash = () => {
+  const confirmMoveToTrash = async () => {
     if (confirmTrashFile) {
-      onMoveToTrash(confirmTrashFile);
+      await patchFile(confirmTrashFile, { isTrashed: true });
+      setFiles(prev => prev.filter(f => f.id !== confirmTrashFile));
       setConfirmTrashFile(null);
     }
   };
@@ -292,46 +312,59 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
     setConfirmTrashFile(null);
   };
 
-  const handleMarkAsSpam = (fileName: string) => {
-    onMarkAsSpam(fileName);
+  const handleMarkAsSpam = async (file: FileItem) => {
+    await patchFile(file.id, { isSpam: true });
+    setFiles(prev => prev.filter(f => f.id !== file.id));
     setOpenMenuFile(null);
   };
 
   useEffect(() => {
-    // Load files from temp_dataset
-    const tempFiles: FileItem[] = [
-      'Notes_1.txt', 'Notes_2.txt', 'Notes_3.txt', 'Notes_4.txt', 'Notes_5.txt',
-      'Document_1.docx', 'Document_2.docx', 'Document_3.docx', 'Document_4.docx', 'Document_5.docx',
-      'Report_1.pdf', 'Report_2.pdf', 'Report_3.pdf', 'Report_4.pdf', 'Report_5.pdf',
-      'Image_1.png', 'Image_2.png', 'Image_3.png', 'Image_4.png', 'Image_5.png',
-      'Image_1.jpg', 'Image_2.jpg', 'Image_3.jpg', 'Image_4.jpg', 'Image_5.jpg',
-      'Sheet_1.xlsx', 'Sheet_2.xlsx', 'Sheet_3.xlsx', 'Sheet_4.xlsx', 'Sheet_5.xlsx',
-      'Slides_1.pptx', 'Slides_2.pptx', 'Slides_3.pptx', 'Slides_4.pptx', 'Slides_5.pptx',
-    ].map(name => ({
-      name,
-      type: name.split('.').pop() || 'file',
-      date: `Dec ${Math.floor(Math.random() * 27) + 1}, 2025`,
-      size: getFileSize(name),
-    }));
-    
-    setFiles(tempFiles);
-  }, []);
+    const fetchFiles = async () => {
+      setLoading(true);
+      setFetchError(false);
+      const token = getAuthToken();
+      if (!token) { setLoading(false); return; }
+      try {
+        const res = await fetch('http://localhost:5000/api/files', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        const mapped: FileItem[] = data.map((f: { id: string; name: string; createdAt: string; size: string; isStarred: boolean }) => ({
+          id: f.id,
+          name: f.name,
+          type: f.name.split('.').pop() || 'file',
+          date: new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          size: formatBytes(parseInt(f.size)),
+          isStarred: f.isStarred,
+        }));
+        setFiles(mapped);
+      } catch (e) {
+        console.error('Failed to load files from server', e);
+        setFetchError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFiles();
+  }, [retryCount]);
 
-  // Add uploaded files to the file list
+  // Instantly append newly uploaded files to the list (optimistic update)
   useEffect(() => {
     if (uploadedFiles.length > 0) {
       setFiles(prev => {
         const existingNames = new Set(prev.map(f => f.name));
-        const newFiles = uploadedFiles.filter(f => !existingNames.has(f.name));
-        return [...prev, ...newFiles];
+        const newFiles = uploadedFiles
+          .filter(f => !existingNames.has(f.name))
+          .map(f => ({ id: '', ...f, type: f.name.split('.').pop() || 'file', isStarred: false }));
+        return [...newFiles, ...prev];
       });
     }
   }, [uploadedFiles]);
 
   // Filter and sort files
   const filteredAndSortedFiles = useMemo(() => {
-    // First filter out trashed files
-    let result = files.filter(file => !trashedFiles.has(file.name));
+    let result = [...files];
     
     // Apply search filter
     if (searchQuery.trim()) {
@@ -364,7 +397,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
     });
     
     return result;
-  }, [files, fileTypeFilter, sortBy, trashedFiles, searchQuery]);
+  }, [files, fileTypeFilter, sortBy, searchQuery]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {
@@ -509,7 +542,34 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
       <div>
         <h2 className="text-lg font-medium text-black mb-4">Files</h2>
         
-        {viewMode === 'list' ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-gray-400">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm">Loading files...</p>
+            </div>
+          </div>
+        ) : fetchError ? (
+          <div className="flex items-center justify-center py-20 text-gray-400">
+            <div className="text-center">
+              <File size={48} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium text-red-500 mb-1">Could not connect to server</p>
+              <p className="text-xs text-gray-400 mb-4">Make sure the backend is running on port 5000</p>
+              <button
+                onClick={() => { setLoading(true); setFiles([]); setRetryCount(c => c + 1); }}
+                className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:bg-gray-800"
+              >Retry</button>
+            </div>
+          </div>
+        ) : filteredAndSortedFiles.length === 0 ? (
+          <div className="flex items-center justify-center py-20 text-gray-400">
+            <div className="text-center">
+              <File size={48} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No files yet. Click <strong>New</strong> to upload your first file.</p>
+            </div>
+          </div>
+        ) : (
+          viewMode === 'list' ? (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -541,14 +601,14 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                       <div className="flex items-center justify-end gap-1">
                         <button 
                           className={`p-2 hover:bg-gray-200 rounded-full transition-all ${
-                            starredFiles.has(file.name) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            file.isStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                           }`}
-                          onClick={(e) => toggleStar(file.name, e)}
-                          title={starredFiles.has(file.name) ? 'Remove from starred' : 'Add to starred'}
+                          onClick={(e) => toggleStar(file, e)}
+                          title={file.isStarred ? 'Remove from starred' : 'Add to starred'}
                         >
                           <Star 
                             size={20} 
-                            className={starredFiles.has(file.name) ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
+                            className={file.isStarred ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
                           />
                         </button>
                         <div className="relative">
@@ -570,7 +630,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleMoveToTrash(file.name);
+                                  handleMoveToTrash(file);
                                 }}
                               >
                                 <Trash2 size={16} className="text-black" />
@@ -580,7 +640,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleMarkAsSpam(file.name);
+                                  handleMarkAsSpam(file);
                                 }}
                               >
                                 <Trash2 size={16} className="text-red-600" />
@@ -616,7 +676,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
               </tbody>
             </table>
           </div>
-        ) : (
+          ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {filteredAndSortedFiles.map((file, index) => {
               // Determine grid columns based on screen size
@@ -647,7 +707,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                     <p className="text-xs text-black">{file.size}</p>
                   </div>
                   <div className="absolute top-2 right-2">
-                    {starredFiles.has(file.name) && (
+                    {file.isStarred && (
                       <div className="absolute -top-1 -left-1">
                         <Star size={12} className="text-yellow-500 fill-yellow-500" />
                       </div>
@@ -670,23 +730,23 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
-                            toggleStar(file.name);
+                            toggleStar(file);
                             setOpenMenuFile(null);
                           }}
                         >
                           <Star 
                             size={16} 
-                            className={starredFiles.has(file.name) ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
+                            className={file.isStarred ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
                           />
                           <span className="text-black">
-                            {starredFiles.has(file.name) ? 'Remove from starred' : 'Add to starred'}
+                            {file.isStarred ? 'Remove from starred' : 'Add to starred'}
                           </span>
                         </button>
                         <button
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleMoveToTrash(file.name);
+                            handleMoveToTrash(file);
                           }}
                         >
                           <Trash2 size={16} className="text-black" />
@@ -719,10 +779,9 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
               </div>
             );})}
           </div>
+          )
         )}
       </div>
-
-      {/* Preview Modal */}
       {selectedFile && (
         <FilePreviewModal 
           file={selectedFile} 
@@ -730,7 +789,7 @@ export const Drive: React.FC<DriveProps> = ({ starredFiles, onToggleStar, trashe
         />
       )}
 
-      {/* Confirmation Modal for Starred Files */}
+      {/* Confirmation Modal — confirm trashing a starred file */}
       {confirmTrashFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={cancelMoveToTrash}>
           <div 

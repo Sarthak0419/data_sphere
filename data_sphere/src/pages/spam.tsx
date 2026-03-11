@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, AlertOctagon, RotateCcw, Trash2 } from 'lucide-react';
 
 interface FileItem {
+  id: string;
   name: string;
   type: string;
   date: string;
@@ -35,9 +36,38 @@ const getFileIcon = (filename: string) => {
   }
 };
 
-const getFileSize = (filename: string): string => {
-  const sizes = ['1.2 KB', '2.4 KB', '5.8 KB', '12.3 KB', '24.5 KB', '156 KB', '1.2 MB', '2.8 MB'];
-  return sizes[Math.floor(Math.random() * sizes.length)];
+const getAuthToken = (): string | null => {
+  const storedAccounts = localStorage.getItem('accountSessions');
+  const activeUserId = localStorage.getItem('activeUserId');
+  if (!storedAccounts || !activeUserId) return null;
+  const accounts = JSON.parse(storedAccounts);
+  const session = accounts.find((s: { user: { id: string }; token: string }) => s.user.id === activeUserId);
+  return session?.token || null;
+};
+
+const patchFile = async (id: string, data: Record<string, unknown>): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) return;
+  await fetch(`http://localhost:5000/api/files/${id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+};
+
+const deleteFile = async (id: string): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) return;
+  await fetch(`http://localhost:5000/api/files/${id}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
 const parseSizeToBytes = (sizeStr: string): number => {
@@ -55,42 +85,58 @@ const parseSizeToBytes = (sizeStr: string): number => {
 };
 
 interface SpamProps {
-  spamFiles: Set<string>;
-  onMarkNotSpam: (fileName: string) => void;
-  onDeleteSpam: (fileName: string) => void;
   searchQuery?: string;
 }
 
-export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' }: SpamProps) => {
+export const Spam = ({ searchQuery = '' }: SpamProps) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Load files from temp_dataset
-    const tempFiles: FileItem[] = [
-      'Notes_1.txt', 'Notes_2.txt', 'Notes_3.txt', 'Notes_4.txt', 'Notes_5.txt',
-      'Document_1.docx', 'Document_2.docx', 'Document_3.docx', 'Document_4.docx', 'Document_5.docx',
-      'Report_1.pdf', 'Report_2.pdf', 'Report_3.pdf', 'Report_4.pdf', 'Report_5.pdf',
-      'Image_1.png', 'Image_2.png', 'Image_3.png', 'Image_4.png', 'Image_5.png',
-      'Image_1.jpg', 'Image_2.jpg', 'Image_3.jpg', 'Image_4.jpg', 'Image_5.jpg',
-      'Sheet_1.xlsx', 'Sheet_2.xlsx', 'Sheet_3.xlsx', 'Sheet_4.xlsx', 'Sheet_5.xlsx',
-      'Slides_1.pptx', 'Slides_2.pptx', 'Slides_3.pptx', 'Slides_4.pptx', 'Slides_5.pptx',
-    ].map(name => ({
-      name,
-      type: name.split('.').pop() || 'file',
-      date: `Dec ${Math.floor(Math.random() * 27) + 1}, 2025`,
-      size: getFileSize(name),
-    }));
+  const handleMarkNotSpam = async (file: FileItem) => {
+    await patchFile(file.id, { isSpam: false });
+    setFiles(prev => prev.filter(f => f.id !== file.id));
+    setOpenMenuFile(null);
+  };
 
-    setFiles(tempFiles);
+  const handleDeleteSpam = async (file: FileItem) => {
+    await deleteFile(file.id);
+    setFiles(prev => prev.filter(f => f.id !== file.id));
+    setOpenMenuFile(null);
+  };
+
+  useEffect(() => {
+    const fetchSpam = async () => {
+      const token = getAuthToken();
+      if (!token) { setLoading(false); return; }
+      try {
+        const res = await fetch('http://localhost:5000/api/files/spam', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        setFiles(data.map((f: { id: string; name: string; createdAt: string; size: string }) => ({
+          id: f.id,
+          name: f.name,
+          type: f.name.split('.').pop() || 'file',
+          date: new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          size: formatBytes(parseInt(f.size)),
+        })));
+      } catch (e) {
+        console.error('Failed to load spam files', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSpam();
   }, []);
 
-  // Filter to only show spam files and apply sorting
+  // Filter and apply sorting
   const filteredAndSortedFiles = useMemo(() => {
-    let result = files.filter(file => spamFiles.has(file.name));
+    let result = [...files];
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -123,14 +169,13 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
     });
 
     return result;
-  }, [files, spamFiles, fileTypeFilter, sortBy, searchQuery]);
+  }, [files, fileTypeFilter, sortBy, searchQuery]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {
-    const spamFilesList = files.filter(f => spamFiles.has(f.name));
-    const types = new Set(spamFilesList.map(f => f.type));
+    const types = new Set(files.map(f => f.type));
     return Array.from(types).sort();
-  }, [files, spamFiles]);
+  }, [files]);
 
   return (
     <div className="h-full">
@@ -219,7 +264,11 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
 
       {/* Files Section */}
       <div>
-        {filteredAndSortedFiles.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-800"></div>
+          </div>
+        ) : filteredAndSortedFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <AlertOctagon size={64} className="text-gray-300 mb-4" />
             <h2 className="text-xl font-medium text-black mb-2">No spam files</h2>
@@ -262,7 +311,7 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
                               className="p-2 hover:bg-gray-200 rounded-full transition-all opacity-0 group-hover:opacity-100"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onMarkNotSpam(file.name);
+                                handleMarkNotSpam(file);
                               }}
                               title="Mark as not spam"
                             >
@@ -287,7 +336,7 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
                                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onMarkNotSpam(file.name);
+                                      handleMarkNotSpam(file);
                                       setOpenMenuFile(null);
                                     }}
                                   >
@@ -298,7 +347,7 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
                                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onDeleteSpam(file.name);
+                                      handleDeleteSpam(file);
                                       setOpenMenuFile(null);
                                     }}
                                   >
@@ -362,7 +411,7 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onMarkNotSpam(file.name);
+                                  handleMarkNotSpam(file);
                                   setOpenMenuFile(null);
                                 }}
                               >
@@ -373,7 +422,7 @@ export const Spam = ({ spamFiles, onMarkNotSpam, onDeleteSpam, searchQuery = '' 
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onDeleteSpam(file.name);
+                                  handleDeleteSpam(file);
                                   setOpenMenuFile(null);
                                 }}
                               >

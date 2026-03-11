@@ -2,11 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Trash2 } from 'lucide-react';
 
 interface FileItem {
+  id: string;
   name: string;
   type: string;
   date: string;
   size: string;
-  starred?: boolean;
+  isStarred: boolean;
 }
 
 const getFileIcon = (filename: string) => {
@@ -35,9 +36,29 @@ const getFileIcon = (filename: string) => {
   }
 };
 
-const getFileSize = (filename: string): string => {
-  const sizes = ['1.2 KB', '2.4 KB', '5.8 KB', '12.3 KB', '24.5 KB', '156 KB', '1.2 MB', '2.8 MB'];
-  return sizes[Math.floor(Math.random() * sizes.length)];
+const getAuthToken = (): string | null => {
+  const storedAccounts = localStorage.getItem('accountSessions');
+  const activeUserId = localStorage.getItem('activeUserId');
+  if (!storedAccounts || !activeUserId) return null;
+  const accounts = JSON.parse(storedAccounts);
+  const session = accounts.find((s: { user: { id: string }; token: string }) => s.user.id === activeUserId);
+  return session?.token || null;
+};
+
+const patchFile = async (id: string, data: Record<string, unknown>): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) return;
+  await fetch(`http://localhost:5000/api/files/${id}`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+};
+
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 };
 
 const parseSizeToBytes = (sizeStr: string): number => {
@@ -55,64 +76,58 @@ const parseSizeToBytes = (sizeStr: string): number => {
 };
 
 interface StarredProps {
-  starredFiles: Set<string>;
-  onToggleStar: (fileName: string) => void;
-  trashedFiles: Set<string>;
-  onMoveToTrash: (fileName: string) => void;
   searchQuery?: string;
 }
 
-export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, trashedFiles, onMoveToTrash, searchQuery = '' }) => {
+export const Starred: React.FC<StarredProps> = ({ searchQuery = '' }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
-  const [confirmTrashFile, setConfirmTrashFile] = useState<string | null>(null);
 
-  const handleMoveToTrash = (fileName: string) => {
-    if (starredFiles.has(fileName)) {
-      setConfirmTrashFile(fileName);
-    } else {
-      onMoveToTrash(fileName);
-    }
+  const handleUnstar = async (file: FileItem) => {
+    await patchFile(file.id, { isStarred: false });
+    setFiles(prev => prev.filter(f => f.id !== file.id));
+  };
+
+  const handleMoveToTrash = async (file: FileItem) => {
+    await patchFile(file.id, { isTrashed: true });
+    setFiles(prev => prev.filter(f => f.id !== file.id));
     setOpenMenuFile(null);
   };
 
-  const confirmMoveToTrash = () => {
-    if (confirmTrashFile) {
-      onMoveToTrash(confirmTrashFile);
-      setConfirmTrashFile(null);
-    }
-  };
-
-  const cancelMoveToTrash = () => {
-    setConfirmTrashFile(null);
-  };
-
   useEffect(() => {
-    // Load files from temp_dataset
-    const tempFiles: FileItem[] = [
-      'Notes_1.txt', 'Notes_2.txt', 'Notes_3.txt', 'Notes_4.txt', 'Notes_5.txt',
-      'Document_1.docx', 'Document_2.docx', 'Document_3.docx', 'Document_4.docx', 'Document_5.docx',
-      'Report_1.pdf', 'Report_2.pdf', 'Report_3.pdf', 'Report_4.pdf', 'Report_5.pdf',
-      'Image_1.png', 'Image_2.png', 'Image_3.png', 'Image_4.png', 'Image_5.png',
-      'Image_1.jpg', 'Image_2.jpg', 'Image_3.jpg', 'Image_4.jpg', 'Image_5.jpg',
-      'Sheet_1.xlsx', 'Sheet_2.xlsx', 'Sheet_3.xlsx', 'Sheet_4.xlsx', 'Sheet_5.xlsx',
-      'Slides_1.pptx', 'Slides_2.pptx', 'Slides_3.pptx', 'Slides_4.pptx', 'Slides_5.pptx',
-    ].map(name => ({
-      name,
-      type: name.split('.').pop() || 'file',
-      date: `Dec ${Math.floor(Math.random() * 27) + 1}, 2025`,
-      size: getFileSize(name),
-    }));
-    
-    setFiles(tempFiles);
+    const fetchStarred = async () => {
+      const token = getAuthToken();
+      if (!token) { setLoading(false); return; }
+      try {
+        const res = await fetch('http://localhost:5000/api/files/starred', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        setFiles(data.map((f: { id: string; name: string; createdAt: string; size: string }) => ({
+          id: f.id,
+          name: f.name,
+          type: f.name.split('.').pop() || 'file',
+          date: new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          size: formatBytes(parseInt(f.size)),
+          isStarred: true,
+        })));
+      } catch (e) {
+        console.error('Failed to load starred files', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStarred();
   }, []);
 
-  // Filter to only show starred files and apply sorting
+  // Filter to only show starred files (they're all starred since fetched from /starred)
   const filteredAndSortedFiles = useMemo(() => {
-    let result = files.filter(file => starredFiles.has(file.name) && !trashedFiles.has(file.name));
+    let result = [...files];
     
     // Apply search filter
     if (searchQuery.trim()) {
@@ -145,14 +160,13 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
     });
     
     return result;
-  }, [files, starredFiles, fileTypeFilter, sortBy, trashedFiles, searchQuery]);
+  }, [files, fileTypeFilter, sortBy, searchQuery]);
 
   // Get unique file types for filter
   const fileTypes = useMemo(() => {
-    const starredFilesList = files.filter(f => starredFiles.has(f.name));
-    const types = new Set(starredFilesList.map(f => f.type));
+    const types = new Set(files.map(f => f.type));
     return Array.from(types).sort();
-  }, [files, starredFiles]);
+  }, [files]);
 
   return (
     <div className="h-full">
@@ -238,7 +252,14 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
 
       {/* Files Section */}
       <div>
-        {filteredAndSortedFiles.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-center">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-gray-400">Loading starred files...</p>
+            </div>
+          </div>
+        ) : filteredAndSortedFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <Star size={64} className="text-gray-300 mb-4" />
             <h2 className="text-xl font-medium text-black mb-2">No starred files yet</h2>
@@ -281,7 +302,7 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                               className="p-2 hover:bg-gray-200 rounded-full transition-all"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleStar(file.name);
+                                handleUnstar(file);
                               }}
                               title="Remove from starred"
                             >
@@ -309,7 +330,7 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleMoveToTrash(file.name);
+                                      handleMoveToTrash(file);
                                     }}
                                   >
                                     <Trash2 size={16} className="text-black" />
@@ -396,7 +417,7 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleStar(file.name);
+                                handleUnstar(file);
                                 setOpenMenuFile(null);
                               }}
                             >
@@ -407,7 +428,7 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleMoveToTrash(file.name);
+                                handleMoveToTrash(file);
                               }}
                             >
                               <Trash2 size={16} className="text-black" />
@@ -444,40 +465,6 @@ export const Starred: React.FC<StarredProps> = ({ starredFiles, onToggleStar, tr
           </>
         )}
       </div>
-
-      {/* Confirmation Modal for Starred Files */}
-      {confirmTrashFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={cancelMoveToTrash}>
-          <div 
-            className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <Star size={24} className="text-yellow-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-black mb-2">This file is starred</h3>
-                <p className="text-black">Do you want to move it to trash?</p>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={cancelMoveToTrash}
-                className="px-6 py-2 text-sm font-medium text-black bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                No
-              </button>
-              <button
-                onClick={confirmMoveToTrash}
-                className="px-6 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

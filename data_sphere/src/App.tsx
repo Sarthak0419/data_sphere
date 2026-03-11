@@ -18,16 +18,12 @@ export interface UploadedFile {
 
 function App() {
   // 1. STATE DEFINITIONS
-  const [starredFiles, setStarredFiles] = useState<Set<string>>(new Set());
-  const [trashedFiles, setTrashedFiles] = useState<Set<string>>(new Set());
-  const [spamFiles, setSpamFiles] = useState<Set<string>>(new Set());
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { logout } = useAuth();
 
-  // 2. HELPER FUNCTIONS
   const addToSearchHistory = (query: string) => {
     if (!query.trim()) return;
     setSearchHistory(prev => {
@@ -36,65 +32,6 @@ function App() {
     });
   };
 
-  const markAsSpam = (fileName: string) => {
-    setSpamFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.add(fileName);
-      return newSet;
-    });
-  };
-
-  const markNotSpam = (fileName: string) => {
-    setSpamFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(fileName);
-      return newSet;
-    });
-  };
-
-  const deleteSpam = (fileName: string) => {
-    setSpamFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(fileName);
-      return newSet;
-    });
-  };
-
-  const toggleStar = (fileName: string) => {
-    setStarredFiles(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(fileName)) {
-        newSet.delete(fileName);
-      } else {
-        newSet.add(fileName);
-      }
-      return newSet;
-    });
-  };
-
-  const moveToTrash = (fileName: string) => {
-    setTrashedFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.add(fileName);
-      return newSet;
-    });
-  };
-
-  const restoreFile = (fileName: string) => {
-    setTrashedFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(fileName);
-      return newSet;
-    });
-  };
-
-  const deletePermanently = (fileName: string) => {
-    setTrashedFiles(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(fileName);
-      return newSet;
-    });
-  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
@@ -193,10 +130,10 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<Navigate to="/drive/my-drive" replace />} />
-          <Route path="drive/my-drive" element={<Drive starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} onMarkAsSpam={markAsSpam} uploadedFiles={uploadedFiles} searchQuery={searchQuery} />} />
-          <Route path="drive/starred" element={<Starred starredFiles={starredFiles} onToggleStar={toggleStar} trashedFiles={trashedFiles} onMoveToTrash={moveToTrash} searchQuery={searchQuery} />} />
-          <Route path="drive/trash" element={<Trash trashedFiles={trashedFiles} onRestoreFile={restoreFile} onDeletePermanently={deletePermanently} searchQuery={searchQuery} />} />
-          <Route path="drive/spam" element={<Spam spamFiles={spamFiles} onMarkNotSpam={markNotSpam} onDeleteSpam={deleteSpam} searchQuery={searchQuery} />} />
+          <Route path="drive/my-drive" element={<Drive uploadedFiles={uploadedFiles} searchQuery={searchQuery} />} />
+          <Route path="drive/starred" element={<Starred searchQuery={searchQuery} />} />
+          <Route path="drive/trash" element={<Trash searchQuery={searchQuery} />} />
+          <Route path="drive/spam" element={<Spam searchQuery={searchQuery} />} />
           <Route path="*" element={<div className="p-4">Page not found</div>} />
         </Route>
       </Routes>
