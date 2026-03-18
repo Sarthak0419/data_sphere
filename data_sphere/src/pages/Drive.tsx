@@ -260,19 +260,12 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
   );
 };
 
-interface UploadedFile {
-  name: string;
-  type: string;
-  date: string;
-  size: string;
-}
-
 interface DriveProps {
-  uploadedFiles?: UploadedFile[];
+  uploadCount?: number;
   searchQuery?: string;
 }
 
-export const Drive: React.FC<DriveProps> = ({ uploadedFiles = [], searchQuery = '' }) => {
+export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -349,18 +342,12 @@ export const Drive: React.FC<DriveProps> = ({ uploadedFiles = [], searchQuery = 
     fetchFiles();
   }, [retryCount]);
 
-  // Instantly append newly uploaded files to the list (optimistic update)
+  // Re-fetch from DB whenever a new upload completes
   useEffect(() => {
-    if (uploadedFiles.length > 0) {
-      setFiles(prev => {
-        const existingNames = new Set(prev.map(f => f.name));
-        const newFiles = uploadedFiles
-          .filter(f => !existingNames.has(f.name))
-          .map(f => ({ id: '', ...f, type: f.name.split('.').pop() || 'file', isStarred: false }));
-        return [...newFiles, ...prev];
-      });
+    if (uploadCount > 0) {
+      setRetryCount(c => c + 1);
     }
-  }, [uploadedFiles]);
+  }, [uploadCount]);
 
   // Filter and sort files
   const filteredAndSortedFiles = useMemo(() => {
@@ -584,8 +571,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadedFiles = [], searchQuery = 
               <tbody>
                 {filteredAndSortedFiles.map((file) => (
                   <tr 
-                    key={file.name} 
-                    className="hover:bg-gray-50 border-b border-gray-100 last:border-none group cursor-pointer"
+                    key={file.id}
                     onClick={() => setSelectedFile(file)}
                   >
                     <td className="py-4 px-6">
@@ -692,8 +678,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadedFiles = [], searchQuery = 
               
               return (
                 <div 
-                  key={file.name} 
-                  className="group bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-gray-300 cursor-pointer transition-all p-4 relative"
+                  key={file.id}
                   onClick={() => setSelectedFile(file)}
                 >
                 <div className="flex flex-col items-center text-center">

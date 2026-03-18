@@ -9,16 +9,9 @@ import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './components/AuthContext';
 
-export interface UploadedFile {
-  name: string;
-  type: string;
-  date: string;
-  size: string;
-}
-
 function App() {
   // 1. STATE DEFINITIONS
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [uploadCount, setUploadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,12 +25,6 @@ function App() {
     });
   };
 
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -76,14 +63,7 @@ function App() {
 
         if (response.ok) {
           console.log('✅ File uploaded to S3:', data);
-          // Add to local state for UI update
-          const newFile: UploadedFile = {
-            name: file.name,
-            type: file.name.split('.').pop() || 'file',
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            size: formatFileSize(file.size),
-          };
-          setUploadedFiles(prev => [...prev, newFile]);
+          setUploadCount(prev => prev + 1);
         } else {
           console.error('❌ Upload failed:', data.message);
         }
@@ -130,7 +110,7 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<Navigate to="/drive/my-drive" replace />} />
-          <Route path="drive/my-drive" element={<Drive uploadedFiles={uploadedFiles} searchQuery={searchQuery} />} />
+          <Route path="drive/my-drive" element={<Drive uploadCount={uploadCount} searchQuery={searchQuery} />} />
           <Route path="drive/starred" element={<Starred searchQuery={searchQuery} />} />
           <Route path="drive/trash" element={<Trash searchQuery={searchQuery} />} />
           <Route path="drive/spam" element={<Spam searchQuery={searchQuery} />} />
