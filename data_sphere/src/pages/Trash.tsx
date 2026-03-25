@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Trash2, RotateCcw } from 'lucide-react';
+import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, Filter, ArrowUpDown, Trash2, RotateCcw } from 'lucide-react';
+import { apiUrl } from '../config/api';
 
 interface FileItem {
   id: string;
@@ -48,7 +49,7 @@ const getAuthToken = (): string | null => {
 const patchFile = async (id: string, data: Record<string, unknown>): Promise<void> => {
   const token = getAuthToken();
   if (!token) return;
-  await fetch(`http://localhost:5000/api/files/${id}`, {
+  await fetch(apiUrl(`/api/files/${id}`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -58,7 +59,7 @@ const patchFile = async (id: string, data: Record<string, unknown>): Promise<voi
 const deleteFile = async (id: string): Promise<void> => {
   const token = getAuthToken();
   if (!token) return;
-  await fetch(`http://localhost:5000/api/files/${id}`, {
+  await fetch(apiUrl(`/api/files/${id}`), {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -111,7 +112,7 @@ export const Trash: React.FC<TrashProps> = ({ searchQuery = '' }) => {
       const token = getAuthToken();
       if (!token) { setLoading(false); return; }
       try {
-        const res = await fetch('http://localhost:5000/api/files/trashed', {
+        const res = await fetch(apiUrl('/api/files/trashed'), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch');

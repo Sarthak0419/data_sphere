@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, HelpCircle, Settings, Grip, UserCircle, Menu, Clock, LogOut, UserPlus } from 'lucide-react';
+import { HelpCircle, Settings, Grip, UserCircle, Clock, LogOut, UserPlus } from 'lucide-react';
 import { useAuth } from './AuthContext';
 
 interface HeaderProps {

@@ -5,9 +5,11 @@ import { Drive } from './pages/Drive';
 import { Starred } from './pages/Starred';
 import { Trash } from './pages/Trash';
 import { Spam } from './pages/spam';
+import { Recent } from './pages/Recent';
 import { Login } from './pages/Login';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuth } from './components/AuthContext';
+import { apiUrl } from './config/api';
 
 function App() {
   // 1. STATE DEFINITIONS
@@ -51,7 +53,7 @@ function App() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch('http://localhost:5000/api/files/upload', {
+        const response = await fetch(apiUrl('/api/files/upload'), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -83,7 +85,7 @@ function App() {
 
   // 3. SERVER CONNECTION TEST (Placed correctly)
   useEffect(() => {
-    fetch('http://localhost:5000')
+    fetch(apiUrl('/api/health'))
       .then(response => response.text())
       .then(data => console.log("📢 Server says:", data))
       .catch(error => console.error("❌ Error:", error));
@@ -111,6 +113,7 @@ function App() {
         }>
           <Route index element={<Navigate to="/drive/my-drive" replace />} />
           <Route path="drive/my-drive" element={<Drive uploadCount={uploadCount} searchQuery={searchQuery} />} />
+          <Route path="drive/recent" element={<Recent searchQuery={searchQuery} />} />
           <Route path="drive/starred" element={<Starred searchQuery={searchQuery} />} />
           <Route path="drive/trash" element={<Trash searchQuery={searchQuery} />} />
           <Route path="drive/spam" element={<Spam searchQuery={searchQuery} />} />

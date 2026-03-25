@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Trash2 } from 'lucide-react';
+import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, Download, Filter, ArrowUpDown, Star, Trash2 } from 'lucide-react';
+import { apiUrl } from '../config/api';
 
 interface FileItem {
   id: string;
@@ -48,11 +49,34 @@ const getAuthToken = (): string | null => {
 const patchFile = async (id: string, data: Record<string, unknown>): Promise<void> => {
   const token = getAuthToken();
   if (!token) return;
-  await fetch(`http://localhost:5000/api/files/${id}`, {
+  await fetch(apiUrl(`/api/files/${id}`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
+};
+
+const downloadFile = async (file: Pick<FileItem, 'id' | 'name'>): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) return;
+
+  const response = await fetch(apiUrl(`/api/files/${file.id}/download`), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error('Download failed');
+  }
+
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
 };
 
 const formatBytes = (bytes: number): string => {
@@ -87,6 +111,15 @@ export const Starred: React.FC<StarredProps> = ({ searchQuery = '' }) => {
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
 
+  const handleDownload = async (file: FileItem) => {
+    try {
+      await downloadFile(file);
+      setOpenMenuFile(null);
+    } catch (error) {
+      console.error('Download failed', error);
+    }
+  };
+
   const handleUnstar = async (file: FileItem) => {
     await patchFile(file.id, { isStarred: false });
     setFiles(prev => prev.filter(f => f.id !== file.id));
@@ -103,7 +136,7 @@ export const Starred: React.FC<StarredProps> = ({ searchQuery = '' }) => {
       const token = getAuthToken();
       if (!token) { setLoading(false); return; }
       try {
-        const res = await fetch('http://localhost:5000/api/files/starred', {
+        const res = await fetch(apiUrl('/api/files/starred'), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch');
@@ -340,21 +373,11 @@ export const Starred: React.FC<StarredProps> = ({ searchQuery = '' }) => {
                                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setOpenMenuFile(null);
+                                      handleDownload(file);
                                     }}
                                   >
                                     <Download size={16} className="text-black" />
                                     <span className="text-black">Download</span>
-                                  </button>
-                                  <button
-                                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuFile(null);
-                                    }}
-                                  >
-                                    <Share2 size={16} className="text-black" />
-                                    <span className="text-black">Share</span>
                                   </button>
                                 </div>
                               )}
@@ -438,22 +461,12 @@ export const Starred: React.FC<StarredProps> = ({ searchQuery = '' }) => {
                               className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setOpenMenuFile(null);
+                                handleDownload(file);
                               }}
                             >
                               <Download size={16} className="text-black" />
                               <span className="text-black">Download</span>
                 </button>
-                            <button
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenMenuFile(null);
-                              }}
-                            >
-                              <Share2 size={16} className="text-black" />
-                              <span className="text-black">Share</span>
-                            </button>
                           </div>
                         )}
                       </div>

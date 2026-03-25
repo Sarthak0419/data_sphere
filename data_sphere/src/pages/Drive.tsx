@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Share2, Filter, ArrowUpDown, Star, Cloud, Lock, Zap, Trash2 } from 'lucide-react';
+import { FileText, Image as ImageIcon, File, MoreVertical, LayoutGrid, List, X, Download, Filter, ArrowUpDown, Star, Cloud, Lock, Zap, Trash2, AlertOctagon } from 'lucide-react';
 import CardSwap, { Card } from '../components/CardSwap';
+import { apiUrl } from '../config/api';
 
 interface FileItem {
   id: string;
@@ -55,11 +56,34 @@ const formatBytes = (bytes: number): string => {
 const patchFile = async (id: string, data: Record<string, unknown>): Promise<void> => {
   const token = getAuthToken();
   if (!token) return;
-  await fetch(`http://localhost:5000/api/files/${id}`, {
+  await fetch(apiUrl(`/api/files/${id}`), {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
+};
+
+const downloadFile = async (file: Pick<FileItem, 'id' | 'name'>): Promise<void> => {
+  const token = getAuthToken();
+  if (!token) return;
+
+  const response = await fetch(apiUrl(`/api/files/${file.id}/download`), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new Error('Download failed');
+  }
+
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(blobUrl);
 };
 
 const parseSizeToBytes = (sizeStr: string): number => {
@@ -76,26 +100,104 @@ const parseSizeToBytes = (sizeStr: string): number => {
   }
 };
 
-const FilePreviewModal: React.FC<{ file: FileItem; onClose: () => void }> = ({ file, onClose }) => {
+const FilePreviewModal: React.FC<{ file: FileItem; onClose: () => void; onDownload: (file: FileItem) => Promise<void> }> = ({ file, onClose, onDownload }) => {
   const ext = file.name.split('.').pop()?.toLowerCase();
   const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(ext || '');
   const isPDF = ext === 'pdf';
   const isExcel = ['xlsx', 'xls'].includes(ext || '');
   const isText = ext === 'txt';
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [textPreview, setTextPreview] = useState('');
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  useEffect(() => {
+    const shouldFetchPreview = isImage || isPDF || isText;
+    if (!shouldFetchPreview) {
+      setPreviewUrl(null);
+      setTextPreview('');
+      setPreviewError(null);
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setPreviewError('Please log in again to preview files');
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    const loadPreview = async () => {
+      try {
+        setPreviewLoading(true);
+        setPreviewError(null);
+
+        const response = await fetch(apiUrl(`/api/files/${file.id}/preview`), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error('Preview request failed');
+        }
+
+        if (isText) {
+          const text = await response.text();
+          if (!cancelled) setTextPreview(text);
+          return;
+        }
+
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        if (!cancelled) setPreviewUrl(objectUrl);
+      } catch (error) {
+        console.error('Failed to load preview', error);
+        if (!cancelled) setPreviewError('Preview is not available for this file right now');
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    };
+
+    loadPreview();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [file.id, isImage, isPDF, isText]);
 
   const renderPreview = () => {
+    if (previewLoading) {
+      return (
+        <div className="flex items-center justify-center h-full bg-gray-50">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-500">Loading preview...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (previewError) {
+      return (
+        <div className="flex items-center justify-center h-full bg-gray-50">
+          <div className="text-center px-6">
+            <File size={64} className="text-black mx-auto mb-4" />
+            <p className="text-black text-lg mb-2">Preview unavailable</p>
+            <p className="text-sm text-gray-500">{previewError}</p>
+          </div>
+        </div>
+      );
+    }
+
     if (isImage) {
       return (
         <div className="flex items-center justify-center h-full bg-gray-900">
           <img 
-            src={`/src/temp_dataset/${file.name}`}
+            src={previewUrl || ''}
             alt={file.name}
             className="max-w-full max-h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              (e.target as HTMLImageElement).parentElement!.innerHTML = 
-                '<div class="text-white text-center"><p class="text-lg mb-2">Image Preview</p><p class="text-gray-400">' + file.name + '</p></div>';
-            }}
           />
         </div>
       );
@@ -103,33 +205,8 @@ const FilePreviewModal: React.FC<{ file: FileItem; onClose: () => void }> = ({ f
 
     if (isPDF) {
       return (
-        <div className="flex flex-col items-center justify-center h-full bg-gray-50 p-8">
-          <div className="bg-white shadow-lg rounded-lg p-8 max-w-2xl w-full">
-            <div className="flex items-center justify-center mb-6">
-              <File size={64} className="text-red-600" />
-            </div>
-            <h3 className="text-2xl font-semibold text-center mb-4">PDF Document</h3>
-            <p className="text-black text-center mb-6">{file.name}</p>
-            <div className="bg-gray-100 p-6 rounded-lg">
-              <div className="space-y-3 text-black">
-                <p className="flex items-center justify-between">
-                  <span className="font-medium">File size:</span>
-                  <span>{file.size}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span className="font-medium">Last modified:</span>
-                  <span>{file.date}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span className="font-medium">Type:</span>
-                  <span>PDF Document</span>
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-black text-center mt-6">
-              PDF preview available in full implementation
-            </p>
-          </div>
+        <div className="h-full bg-gray-100 p-4">
+          <iframe title={file.name} src={previewUrl || ''} className="w-full h-full rounded-lg border border-gray-300 bg-white" />
         </div>
       );
     }
@@ -182,17 +259,6 @@ const FilePreviewModal: React.FC<{ file: FileItem; onClose: () => void }> = ({ f
     }
 
     if (isText) {
-      const sampleText = `This is a sample text file: ${file.name}
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-
-Key Points:
-• First important note
-• Second important note  
-• Third important note
-
-Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.`;
-
       return (
         <div className="flex flex-col h-full bg-white">
           <div className="flex-1 overflow-auto p-8">
@@ -201,7 +267,7 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
               <p className="text-black">Text Document</p>
             </div>
             <div className="bg-gray-50 border border-gray-300 rounded-lg p-6">
-              <pre className="font-mono text-sm text-black whitespace-pre-wrap">{sampleText}</pre>
+              <pre className="font-mono text-sm text-black whitespace-pre-wrap">{textPreview}</pre>
             </div>
           </div>
         </div>
@@ -235,11 +301,8 @@ Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliqu
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Download">
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Download" onClick={() => onDownload(file)}>
               <Download size={20} className="text-black" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Share">
-              <Share2 size={20} className="text-black" />
             </button>
             <button 
               onClick={onClose}
@@ -270,12 +333,23 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [fetchErrorMessage, setFetchErrorMessage] = useState('Could not connect to server');
   const [retryCount, setRetryCount] = useState(0);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [fileTypeFilter, setFileTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'size-asc' | 'size-desc' | 'date'>('name');
   const [openMenuFile, setOpenMenuFile] = useState<string | null>(null);
   const [confirmTrashFile, setConfirmTrashFile] = useState<string | null>(null);
+
+  const handleDownload = async (file: FileItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    try {
+      await downloadFile(file);
+      setOpenMenuFile(null);
+    } catch (error) {
+      console.error('Download failed', error);
+    }
+  };
 
   const toggleStar = async (file: FileItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -315,13 +389,19 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
     const fetchFiles = async () => {
       setLoading(true);
       setFetchError(false);
+      setFetchErrorMessage('Could not connect to server');
       const token = getAuthToken();
       if (!token) { setLoading(false); return; }
       try {
-        const res = await fetch('http://localhost:5000/api/files', {
+        const res = await fetch(apiUrl('/api/files'), {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error('Failed to fetch');
+        if (res.status === 401 || res.status === 403) {
+          throw new Error('AUTH_ERROR');
+        }
+        if (!res.ok) {
+          throw new Error(`HTTP_${res.status}`);
+        }
         const data = await res.json();
         const mapped: FileItem[] = data.map((f: { id: string; name: string; createdAt: string; size: string; isStarred: boolean }) => ({
           id: f.id,
@@ -334,6 +414,13 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
         setFiles(mapped);
       } catch (e) {
         console.error('Failed to load files from server', e);
+        if (e instanceof Error && e.message === 'AUTH_ERROR') {
+          setFetchErrorMessage('Session expired. Please log in again');
+        } else if (e instanceof Error && e.message.startsWith('HTTP_')) {
+          setFetchErrorMessage('Server returned an unexpected response');
+        } else {
+          setFetchErrorMessage('Could not connect to server');
+        }
         setFetchError(true);
       } finally {
         setLoading(false);
@@ -540,7 +627,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
           <div className="flex items-center justify-center py-20 text-gray-400">
             <div className="text-center">
               <File size={48} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium text-red-500 mb-1">Could not connect to server</p>
+              <p className="text-sm font-medium text-red-500 mb-1">{fetchErrorMessage}</p>
               <p className="text-xs text-gray-400 mb-4">Make sure the backend is running on port 5000</p>
               <button
                 onClick={() => { setLoading(true); setFiles([]); setRetryCount(c => c + 1); }}
@@ -572,6 +659,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
                 {filteredAndSortedFiles.map((file) => (
                   <tr 
                     key={file.id}
+                    className="group"
                     onClick={() => setSelectedFile(file)}
                   >
                     <td className="py-4 px-6">
@@ -587,7 +675,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
                       <div className="flex items-center justify-end gap-1">
                         <button 
                           className={`p-2 hover:bg-gray-200 rounded-full transition-all ${
-                            file.isStarred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            file.isStarred ? 'opacity-100' : 'opacity-50 group-hover:opacity-100'
                           }`}
                           onClick={(e) => toggleStar(file, e)}
                           title={file.isStarred ? 'Remove from starred' : 'Add to starred'}
@@ -597,9 +685,29 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
                             className={file.isStarred ? 'text-yellow-500 fill-yellow-500' : 'text-black'} 
                           />
                         </button>
+                        <button
+                          className="p-2 hover:bg-gray-200 rounded-full opacity-50 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMoveToTrash(file);
+                          }}
+                          title="Move to trash"
+                        >
+                          <Trash2 size={18} className="text-black" />
+                        </button>
+                        <button
+                          className="p-2 hover:bg-gray-200 rounded-full opacity-50 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsSpam(file);
+                          }}
+                          title="Mark as spam"
+                        >
+                          <AlertOctagon size={18} className="text-red-600" />
+                        </button>
                         <div className="relative">
                           <button 
-                            className="p-2 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="p-2 hover:bg-gray-200 rounded-full opacity-50 group-hover:opacity-100 transition-opacity"
                             onClick={(e) => {
                               e.stopPropagation();
                               setOpenMenuFile(openMenuFile === file.name ? null : file.name);
@@ -636,21 +744,11 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setOpenMenuFile(null);
+                                  handleDownload(file);
                                 }}
                               >
                                 <Download size={16} className="text-black" />
                                 <span className="text-black">Download</span>
-                              </button>
-                              <button
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuFile(null);
-                                }}
-                              >
-                                <Share2 size={16} className="text-black" />
-                                <span className="text-black">Share</span>
                               </button>
                             </div>
                           )}
@@ -679,6 +777,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
               return (
                 <div 
                   key={file.id}
+                  className="group relative"
                   onClick={() => setSelectedFile(file)}
                 >
                 <div className="flex flex-col items-center text-center">
@@ -741,21 +840,11 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
                           className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenMenuFile(null);
+                            handleDownload(file);
                           }}
                         >
                           <Download size={16} className="text-black" />
                           <span className="text-black">Download</span>
-                        </button>
-                        <button
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuFile(null);
-                          }}
-                        >
-                          <Share2 size={16} className="text-black" />
-                          <span className="text-black">Share</span>
                         </button>
                       </div>
                     )}
@@ -770,6 +859,7 @@ export const Drive: React.FC<DriveProps> = ({ uploadCount = 0, searchQuery = '' 
       {selectedFile && (
         <FilePreviewModal 
           file={selectedFile} 
+          onDownload={downloadFile}
           onClose={() => setSelectedFile(null)} 
         />
       )}

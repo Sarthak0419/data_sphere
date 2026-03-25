@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 // User type matching backend schema
 interface User {
@@ -32,8 +33,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-const API_BASE_URL = 'http://localhost:5000';
 
 // Generate a random avatar URL based on user info
 const generateProfilePic = (username: string): string => {
